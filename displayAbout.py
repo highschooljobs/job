@@ -5,7 +5,7 @@ navigator = """
 <p>
 <font size="5">
 <b>
-<a href="main.html">Home</a>
+<a href="index.html">Home</a>
  | 
 <font color="gray">About</font>
 </b>
@@ -15,7 +15,9 @@ navigator = """
 """
 
 print("Content-type:text/html")
+print("<html>")
 print("  <body>")
 print("    <h1>About</h1>")
 print(navigator)
 print("  </body>")
+print("</html>")

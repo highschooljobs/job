@@ -19,6 +19,7 @@ cursor = conn.cursor()
 
 cursor.execute('SELECT cityState FROM cityState')
 cityState = cursor.fetchall()
+cityState.sort()
 
 # Execute SELECT statement
 addcity = ' AND cityState = "' + city + '"' if citySelected else ""
