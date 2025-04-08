@@ -5,7 +5,7 @@ import sqlite3
 import time, datetime
 import sys
 
-def parse(URL):
+def parse(URL, cursor):
     keyTitle = '"title":"'
     keyAge = " years"
     keyPay = "SalaryRange-$"
@@ -74,9 +74,12 @@ def parse(URL):
             city = parseTerm(s, 'addressLocality":"', '"', loco)
             state = parseTerm(s, 'addressRegion":"', '"', loco)
 
-            citystate = city + ", " + state
-            results["cityState"] = citystate
-    
+            cityState = city + ", " + state
+            results["cityState"] = cityState
+
+            if not existsCityState(cityState, cursor):
+                command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
+                cursor.execute(command1)
     return results
 
 
@@ -90,6 +93,12 @@ def parseTerm(s, keyStart, keyEnd, lastIndex):
 
     return term
 
+def existsCityState(cityState, cursor):
+    command1 = 'SELECT EXISTS(SELECT 1 FROM cityState WHERE cityState="' + str(cityState) + '")'
+    cursor.execute(command1)
+    result = cursor.fetchone()
+
+    return result[0]
 
 def existsId(jobId, cursor):
     command1 = 'SELECT EXISTS(SELECT 1 FROM jobs WHERE id="' + str(jobId) + '")'
@@ -99,7 +108,7 @@ def existsId(jobId, cursor):
     return result[0]
 
 def updateSQL(dictionary, cursor):
-    command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, url) VALUES ('Chipotle', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
+    command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, longitude, latitude, url) VALUES ('Chipotle', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
     cursor.execute(command1)
 
 
@@ -118,26 +127,28 @@ def parseList(URL) :
         # look for job ID
         id = parseTerm(s, 'data-job-id=\\"', '\\', pos)
         # look for latitude
-        #latitude = parseTerm(s, '"latitude":"', '"', pos)
+        latitude = 0
         # look for job address
         address = parseTerm(s, 'address\\">', ',', pos)
         # look for url
         iturl = parseTerm(s, 'href=\\"/job', "\\", pos)
         iturl = "https://jobs.chipotle.com/job/" + iturl
         #print("url: ", iturl, flush = True)      
-        # look for longitude
-        #longitude = parseTerm(s, '"longitude":"', '"', pos)
+        #look for longitude
+        longitude = 0
 
         # loop back to find the next ID
         pos = s.find('href=\\"/job', pos + 12)
 
         i += 1
+
+
         if not existsId(id, cursor):
-            results = parse(iturl)
+            results = parse(iturl, cursor)
             results.update({"id": id})
             results.update({"address": address})
-            #results.update({"latitude": latitude})
-            #results.update({"longitude": longitude})
+            results.update({"latitude": latitude})
+            results.update({"longitude": longitude})
             #results.update({"cityState": cityState})
             results.update({"url": iturl})
             resultList.append(results)
@@ -145,6 +156,8 @@ def parseList(URL) :
             print("  ", i, " Job ", id, " added", iturl)
         else:
             print("  ", i, "Job ", id, " already exists", iturl)
+
+ 
 
 
     return resultList
@@ -164,6 +177,8 @@ cursor = connection.cursor()
 command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
 cursor.execute(command1)
 
+command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT)"
+cursor.execute(command2)
 
 master = []
 
