@@ -81,6 +81,7 @@ print("City: '" + city + "'</br>")
 for i in arguments.keys():
     print(i + " '" +  arguments[i].value + "'</br>")
 print('<select onchange = "location = this.options[this.selectedIndex].value;">')
+print("<option value='http://52.53.194.209'>ALL</option>")
 for i in cityState:
     selectstr = " selected" if citySelected and i[0] == city else ""
     print("<option value='http://52.53.194.209/?cityState=" + i[0]  + "'" + selectstr + ">" + i[0] + "</option>")
