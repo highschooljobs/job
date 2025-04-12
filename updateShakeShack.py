@@ -6,16 +6,22 @@ import time, datetime
 import sys
 from common import *
 
-def parse(URL):
-    keyTitle = '"title" : '
-    keyAge = "years of age"
-    keyPay = "pay"
+
+def parse(URL, cursor):
+    keyTitle = '<title>'
+    keyAge = "or older"
+    keyPays = [
+    '"og:description" content="Pay Range - ',
+    'content="Hourly Rate:'
+]
+    keyCity = '"addressLocality":"'
 
 
     results = {
         "title" : "",
         "age": 0,
-        "pay": ""
+        "pay": "",
+        "cityState" : ""
     }
 
     r = requests.get(url=URL)
@@ -30,8 +36,8 @@ def parse(URL):
     # find the title
     for line in lines:
         if keyTitle.lower() in line.lower():
-            loco = line.find(keyTitle) + len(keyTitle) + 1
-            title_str = line[loco: - 2].strip()
+            loco = line.find(keyTitle)
+            title_str = parseTerm(s, keyTitle, "<", loco)
             try:
                 results["title"] = title_str
             except ValueError:
@@ -44,33 +50,49 @@ def parse(URL):
         if keyAge.lower() in line.lower():
             loco = line.lower().find(keyAge.lower())
             assert loco > -1, "could not find age"
-            loco -= 3
+            loco -= 9
 
-            age_str = line[loco:loco + 2].strip()
+            age_str = line[loco:loco + 3].strip()
             try:
                 results["age"] = int(age_str)
             except ValueError:
                 pass
     # look for the pay
     for line in lines:
-        if keyPay.lower() in line.lower():
-            if "$" in line.lower():
-                loco = line.find("$")
-                end = line.find(" ", loco)
-                pay_str = line[loco:end].strip(" ")
-            else:
-                pay_str = "Competitive"
-            try:
-                results["pay"] = pay_str
-            except ValueError:
-                pass
+        for keyPay in keyPays:
+            if keyPay.lower() in line.lower():
+                if "$" in line.lower():
+                    loco = line.find("$")
+                    end = line.find("O", loco)
+                    pay_str = line[loco:end].strip(' ')
+                else:
+                    pay_str = "Competitive"
+                try:
+                    results["pay"] = pay_str
+                except ValueError:
+                    pass
 
+    # look for the city and state
+    
+    for line in lines:
+        if keyCity.lower() in line.lower():
+            loco = line.find(keyCity) - len(keyCity)
+            city = parseTerm(s, 'addressLocality":"', '"', loco)
+            state = parseTerm(s, 'addressRegion":"', '"', loco)
+
+            cityState = city + ", " + state
+            results["cityState"] = cityState
+
+            if not existsCityState(cityState, cursor):
+                command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
+                cursor.execute(command1)
     return results
 
-
 def updateSQL(dictionary, cursor):
-    command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, longitude, latitude, url) VALUES ('Panera', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
+    command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, longitude, latitude, url) VALUES ('Shake Shack', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
     cursor.execute(command1)
+
+
 
 
 def parseList(URL):
@@ -83,46 +105,36 @@ def parseList(URL):
     s = r.text
 
 
-    pos = s.find('"reqId":"JR', 0)
+    pos = s.find('href="/job/', 0)
     i = 0
     while pos != -1:
 
         # look for job ID
-        id = parseTerm(s, '"reqId":"JR', '"', pos)
+        id = parseTerm(s, 'data-jobId="', '"', pos)
         # look for latitude
-        latitude = parseTerm(s, '"latitude":"', '"', pos)
+        latitude = 0
         # look for job address
-        address = parseTerm(s, '"address":"', '"', pos)
+        address = parseTerm(s, 'text-capitalize ms-2 job-location text-grey">', '<', pos)
         # look for url
-        iturl = parseTerm(s, '"applyUrl":"', "/apply", pos)
+        iturl = parseTerm(s, 'href="/job/', '"', pos)
+        iturl = "https://shake-shack.daliajobs.com/job/" + iturl
         #print("url: ", iturl, flush = True)      
         # look for longitude
-        longitude = parseTerm(s, '"longitude":"', '"', pos)
-        # look for the cityState
-        cityState = parseTerm(s, '"cityState":"', '"', pos)
+        longitude = 0
 
         # loop back to find the next ID
-        pos = s.find('"reqId":"JR', pos + 10)
-
-        state = cityState.split(",")[-1].strip()
-
-        state = get_state_abbreviation(state)
-
-        cityState = cityState.split(",")[0].strip() + ", " + state
+        pos = s.find('href="/job/', pos + 10)
 
         i += 1
         
-        if not existsCityState(cityState, cursor):
-            command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
-            cursor.execute(command1)
+
 
         if not existsId(id, cursor):
-            results = parse(iturl)
+            results = parse(iturl, cursor)
             results.update({"id": id})
             results.update({"address": address})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
-            results.update({"cityState": cityState})
             results.update({"url": iturl})
             resultList.append(results)
             updateSQL(results, cursor)
@@ -133,7 +145,6 @@ def parseList(URL):
 
 
     return resultList
-
 
 
 if len(sys.argv) < 3 or len(sys.argv) > 3:
@@ -157,7 +168,7 @@ master = []
 
 y = int(sys.argv[1])
 for x in range(int(sys.argv[2])):
-    link = "https://careers.panerabread.com/global/en/search-results?keywords=&from=" + str(y) + "0&s=1"
+    link = "https://shake-shack.daliajobs.com/job-search?page=" + str(y)
     results = parseList(link)
     master += results
     y += 1
@@ -184,3 +195,4 @@ for item in master:
 
 connection.commit()
 connection.close()
+

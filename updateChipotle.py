@@ -4,6 +4,7 @@ import requests
 import sqlite3
 import time, datetime
 import sys
+from common import *
 
 def parse(URL, cursor):
     keyTitle = '"title":"'
@@ -73,7 +74,7 @@ def parse(URL, cursor):
             loco = line.find(keyCity) - len(keyCity)
             city = parseTerm(s, 'addressLocality":"', '"', loco)
             state = parseTerm(s, 'addressRegion":"', '"', loco)
-
+            state = get_state_abbreviation(state)
             cityState = city + ", " + state
             results["cityState"] = cityState
 
@@ -82,34 +83,10 @@ def parse(URL, cursor):
                 cursor.execute(command1)
     return results
 
-
-
-def parseTerm(s, keyStart, keyEnd, lastIndex):
-    pos = s.find(keyStart, lastIndex)
-    start = pos + len(keyStart)
-    end = s.find(keyEnd, start)
-
-    term = s[start:end].strip()
-
-    return term
-
-def existsCityState(cityState, cursor):
-    command1 = 'SELECT EXISTS(SELECT 1 FROM cityState WHERE cityState="' + str(cityState) + '")'
-    cursor.execute(command1)
-    result = cursor.fetchone()
-
-    return result[0]
-
-def existsId(jobId, cursor):
-    command1 = 'SELECT EXISTS(SELECT 1 FROM jobs WHERE id="' + str(jobId) + '")'
-    cursor.execute(command1)
-    result = cursor.fetchone()
-
-    return result[0]
-
 def updateSQL(dictionary, cursor):
     command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, longitude, latitude, url) VALUES ('Chipotle', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
     cursor.execute(command1)
+
 
 
 def parseList(URL) :
