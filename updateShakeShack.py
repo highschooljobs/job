@@ -37,7 +37,7 @@ def parse(URL, cursor):
     for line in lines:
         if keyTitle.lower() in line.lower():
             loco = line.find(keyTitle)
-            title_str = parseTerm(s, keyTitle, "<", loco)
+            title_str = parseTerm(s, keyTitle, "|", loco)
             try:
                 results["title"] = title_str
             except ValueError:
@@ -63,8 +63,10 @@ def parse(URL, cursor):
             if keyPay.lower() in line.lower():
                 if "$" in line.lower():
                     loco = line.find("$")
-                    end = line.find("O", loco)
+                    end = line.find(" ", loco)
                     pay_str = line[loco:end].strip(' ')
+                    if "/" in pay_str:
+                        pay_str = pay_str.split("/")[0].strip()
                 else:
                     pay_str = "Competitive"
                 try:

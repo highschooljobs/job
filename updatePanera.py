@@ -56,8 +56,20 @@ def parse(URL):
         if keyPay.lower() in line.lower():
             if "$" in line.lower():
                 loco = line.find("$")
-                end = line.find(" ", loco)
-                pay_str = line[loco:end].strip(" ")
+                subline = line[loco:]  # start at the $
+    
+                # Only keep valid characters: $, digits, -, space
+                valid_chars = "$0123456789-– "  # notice: also include "–" (long dash)
+                pay_str = ""
+                for ch in subline:
+                    if ch in valid_chars:
+                        pay_str += ch
+                    else:
+                        break  # stop when invalid char (like < or >) is found
+
+                # clean up dashes
+                pay_str = pay_str.replace("–", "-").replace(" -", "-").replace("- ", "-").strip()
+
             else:
                 pay_str = "Competitive"
             try:
