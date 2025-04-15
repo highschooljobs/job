@@ -7,6 +7,9 @@ arguments = cgi.FieldStorage()
 citySelected = "cityState" in arguments
 city = arguments["cityState"].value if citySelected else ""
 
+dbg_mode = "dbg" in arguments
+dbg = True if dbg_mode and arguments["dbg"].value  == '1' else False
+
 jobpath = "/var/lib/db/jobs.db"
 
 if not os.path.exists(jobpath):
@@ -23,9 +26,11 @@ cityState.sort()
 
 # Execute SELECT statement
 addcity = ' AND cityState = "' + city + '"' if citySelected else ""
-cursor.execute('SELECT company, title, id, age, pay, cityState, longitude, latitude, url FROM jobs WHERE age = 16' + addcity)
+cursor.execute('SELECT company, title, id, age, pay, address, cityState, longitude, latitude, url FROM jobs WHERE age = 16' + addcity)
 jobs = cursor.fetchall()
 
+columns = ["company", "title", "id", "age", "pay", "address", "cityState", "longitude", "latitude", "url"]
+exclude = ["id", "longitude", "latitude"]
 
 conn.close()
 
@@ -76,36 +81,58 @@ print(style)
 print("  <body>")
 print("    <h1>Jobs</h1>")
 print(navigator)
-print("City Selected: " + str(citySelected) +  "</br>")
-print("City: '" + city + "'</br>")
-for i in arguments.keys():
-    print(i + " '" +  arguments[i].value + "'</br>")
-print('<select onchange = "location = this.options[this.selectedIndex].value;">')
-print("<option value='http://52.53.194.209'>ALL</option>")
+if dbg:
+    print("City Selected: " + str(citySelected) +  "</br>")
+    print("City: '" + city + "'</br>")
+    for i in arguments.keys():
+        print(i + " '" +  arguments[i].value + "'</br>")
+if dbg:
+    print('<select onchange = "location = this.options[this.selectedIndex].value + \'&dbg=1\';">')
+else:
+    print('<select onchange = "location = this.options[this.selectedIndex].value;">')
+print("<option value='http://52.53.194.209/?'>ALL</option>")
 for i in cityState:
-    selectstr = " selected" if citySelected and i[0] == city else ""
-    print("<option value='http://52.53.194.209/?cityState=" + i[0]  + "'" + selectstr + ">" + i[0] + "</option>")
+    if dbg or "CA" in i[0]:
+        selectstr = " selected" if citySelected and i[0] == city else ""
+        print("<option value='http://52.53.194.209/?cityState=" + i[0]  + "'" + selectstr + ">" + i[0] + "</option>")
 print("</select>")
 print("    <table>")
 print("      <tr>")
-print("        <th>Company</th>")
-print("        <th>Title</th>")
-print("        <th>Id</th>")
-print("        <th>Age</th>")
-print("        <th>Pay</th>")
-print("        <th>cityState</th>")
-print("        <th>Longitude</th>")
-print("        <th>Latitude</th>")
-print("        <th>url</th>")
-
+if dbg:
+    print("        <th>Company</th>")
+    print("        <th>Title</th>")
+    print("        <th>Id</th>")
+    print("        <th>Age</th>")
+    print("        <th>Pay</th>")
+    print("        <th>Address</th>")
+    print("        <th>cityState</th>")
+    print("        <th>Longitude</th>")
+    print("        <th>Latitude</th>")
+    print("        <th>url</th>")
+else:
+    print("        <th>Company</th>")
+    print("        <th>Title</th>")
+    print("        <th>Age</th>")
+    print("        <th>Pay</th>")
+    print("        <th>Address</th>")
+    print("        <th>cityState</th>")
+    print("        <th>url</th>")
 
 print("      </tr>")
+if dbg:
+    for i in jobs:
+        print("      <tr>")
+        for x in i:
+            print("<td>" + x + "</td>")
+        print("      </tr>")
+else:
+    for i in jobs:
+        print("      <tr>")
+        for idx, value in enumerate(i):
+            if columns[idx] not in exclude:
+                print("<td>" + str(value) + "</td>")
+        print("      </tr>")
 
-for i in jobs:
-    print("      <tr>")
-    for x in i:
-        print("<td>" + x + "</td>")
-    print("      </tr>")
 print("    </table>")
 print("Total jobs: ", len(jobs))
 print("  </body>")

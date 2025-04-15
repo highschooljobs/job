@@ -91,7 +91,7 @@ def parse(URL, cursor):
     return results
 
 def updateSQL(dictionary, cursor):
-    command1 = "INSERT INTO jobs (company, title, id, age, pay, cityState, longitude, latitude, url) VALUES ('Shake Shack', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
+    command1 = "INSERT INTO jobs (company, title, id, age, pay, address, cityState, longitude, latitude, url) VALUES ('Shake Shack', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["address"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
     cursor.execute(command1)
 
 
@@ -117,6 +117,9 @@ def parseList(URL):
         latitude = 0
         # look for job address
         address = parseTerm(s, 'text-capitalize ms-2 job-location text-grey">', '<', pos)
+        comma_index = address.find(',')
+        address = address[comma_index + 2:]
+        address = address.split(',', 1)[0]
         # look for url
         iturl = parseTerm(s, 'href="/job/', '"', pos)
         iturl = "https://shake-shack.daliajobs.com/job/" + iturl
@@ -160,7 +163,7 @@ print("command: ", sys.argv[0], sys.argv[1], sys.argv[2])
 connection = sqlite3.connect("/var/lib/db/jobs.db")
 cursor = connection.cursor()
 
-command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
+command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
 cursor.execute(command1)
 
 command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT)"
@@ -197,4 +200,3 @@ for item in master:
 
 connection.commit()
 connection.close()
-
