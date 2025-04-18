@@ -1,3 +1,7 @@
+from geopy.geocoders import GoogleV3
+GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
+geolocator = GoogleV3(api_key=GM_API_KEY)
+
 def get_state_abbreviation(state_name):
     states = {
         "alabama": "AL",
@@ -79,4 +83,9 @@ def existsId(jobId, cursor):
 
     return result[0]
 
+def getLatLong(address):
+
+    location = geolocator.geocode(address)
+    
+    return (location.latitude, location.longitude)
 

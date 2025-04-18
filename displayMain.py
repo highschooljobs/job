@@ -26,10 +26,10 @@ cityState.sort()
 
 # Execute SELECT statement
 addcity = ' AND cityState = "' + city + '"' if citySelected else ""
-cursor.execute('SELECT company, title, id, age, pay, address, cityState, longitude, latitude, url FROM jobs WHERE age = 16' + addcity)
+cursor.execute('SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + addcity)
 jobs = cursor.fetchall()
 
-columns = ["company", "title", "id", "age", "pay", "address", "cityState", "longitude", "latitude", "url"]
+columns = ["company", "title", "id", "age", "pay", "address", "cityState", "latitude", "longitude", "url"]
 exclude = ["id", "longitude", "latitude"]
 
 conn.close()
@@ -106,8 +106,8 @@ if dbg:
     print("        <th>Pay</th>")
     print("        <th>Address</th>")
     print("        <th>cityState</th>")
-    print("        <th>Longitude</th>")
     print("        <th>Latitude</th>")
+    print("        <th>Longitude</th>")
     print("        <th>url</th>")
 else:
     print("        <th>Company</th>")

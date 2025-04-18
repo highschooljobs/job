@@ -79,8 +79,10 @@ def parse(URL, cursor):
             results["cityState"] = cityState
 
             if not existsCityState(cityState, cursor):
-                command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
+                latitude, longitude = getLatLong(cityState)
+                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
                 cursor.execute(command1)
+
     return results
 
 def updateSQL(dictionary, cursor):
@@ -103,16 +105,13 @@ def parseList(URL) :
     while pos != -1:
         # look for job ID
         id = parseTerm(s, 'data-job-id=\\"', '\\', pos)
-        # look for latitude
-        latitude = 0
         # look for job address
         address = parseTerm(s, 'address\\">', ',', pos)
         # look for url
         iturl = parseTerm(s, 'href=\\"/job', "\\", pos)
         iturl = "https://jobs.chipotle.com/job/" + iturl
         #print("url: ", iturl, flush = True)      
-        #look for longitude
-        longitude = 0
+        #look for latitude and longitude
 
         # loop back to find the next ID
         pos = s.find('href=\\"/job', pos + 12)
@@ -122,6 +121,7 @@ def parseList(URL) :
 
         if not existsId(id, cursor):
             results = parse(iturl, cursor)
+            latitude, longitude = getLatLong(address + ", " + results["cityState"])
             results.update({"id": id})
             results.update({"address": address})
             results.update({"latitude": latitude})
@@ -154,7 +154,7 @@ cursor = connection.cursor()
 command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
 cursor.execute(command1)
 
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT)"
+command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude TEXT, longitude TEXT)"
 cursor.execute(command2)
 
 master = []
