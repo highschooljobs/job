@@ -167,7 +167,7 @@ else:
         print("      </tr>")
 
 print("    </table>")
-print("Total jobs: ", len(jobs))
-print(lat, long)
-print(jobs)
+if dbg:
+    print("Total jobs: ", len(jobs))
+    print(jobs)
 print("  </body>")
