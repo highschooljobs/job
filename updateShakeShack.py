@@ -86,7 +86,8 @@ def parse(URL, cursor):
             results["cityState"] = cityState
 
             if not existsCityState(cityState, cursor):
-                command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
+                latitude, longitude = getLatLong(cityState)
+                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
                 cursor.execute(command1)
     return results
 
@@ -137,6 +138,7 @@ def parseList(URL):
         if not existsId(id, cursor):
             results = parse(iturl, cursor)
             results.update({"id": id})
+            latitude, longitude = getLatLong(address + ", " + results["cityState"])
             results.update({"address": address})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
@@ -166,7 +168,7 @@ cursor = connection.cursor()
 command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
 cursor.execute(command1)
 
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT)"
+command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude TEXT, longitude TEXT)"
 cursor.execute(command2)
 
 master = []

@@ -1,6 +1,9 @@
 from geopy.geocoders import GoogleV3
+import geopy.distance
 GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
 geolocator = GoogleV3(api_key=GM_API_KEY)
+
+
 
 def get_state_abbreviation(state_name):
     states = {
@@ -89,3 +92,7 @@ def getLatLong(address):
     
     return (location.latitude, location.longitude)
 
+def calcDistance(cityLat, cityLong, jobLat, jobLong):
+    city = (cityLat, cityLong)
+    job = (jobLat, jobLong)
+    return (geopy.distance.geodesic(city, job).miles)
