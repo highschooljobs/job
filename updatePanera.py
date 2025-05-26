@@ -20,7 +20,7 @@ def parse(URL):
 
     r = requests.get(url=URL)
     if r.status_code != 200:
-        print("ERROR: HTTP Response code  " + r.status_code)
+        print("ERROR: HTTP Response code  " + str(r.status_code))
     time.sleep(1)
     s = r.text
 
@@ -126,7 +126,8 @@ def parseList(URL):
         i += 1
         
         if not existsCityState(cityState, cursor):
-            command1 = "INSERT INTO cityState (cityState) VALUES ('" + str(cityState) + "')"
+            citylat, citylong = getLatLong(cityState)
+            command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(citylat) + "', '" + str(citylong) + "')"
             cursor.execute(command1)
 
         if not existsId(id, cursor):
@@ -160,10 +161,10 @@ print("command: ", sys.argv[0], sys.argv[1], sys.argv[2])
 connection = sqlite3.connect("/var/lib/db/jobs.db")
 cursor = connection.cursor()
 
-command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude TEXT, latitude TEXT, url TEXT)"
+command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)"
 cursor.execute(command1)
 
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT)"
+command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
 cursor.execute(command2)
 
 master = []
