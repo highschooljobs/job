@@ -8,6 +8,8 @@ arguments = cgi.FieldStorage()
 citySelected = "cityState" in arguments
 city = arguments["cityState"].value if citySelected else ""
 
+#check if user is on a phone
+phone = "Phone" in os.environ["HTTP_USER_AGENT"]
 
 dbg_mode = "dbg" in arguments
 dbg = True if dbg_mode and arguments["dbg"].value  == '1' else False
@@ -95,26 +97,43 @@ tr:nth-child(even) {
 </style>
 </head>
 """
-
-
 navigator = """
 <hr>
-<p>
-<b>
-<font color="gray">Home</font>
- | 
-<a href="about.html">About</a>
-</b>
-</font>
-</p>
+<style>
+  .nav-link {
+    text-decoration: none;
+    font-weight: normal;
+    color: black;
+  }
+
+  .nav-link:hover {
+    font-weight: bold;
+  }
+
+  .active {
+    font-weight: bold;
+    color: black;
+    text-decoration: none;
+  }
+
+  .nav-container {
+    text-align: center;
+  }
+</style>
+
+<div class="nav-container">
+  <p>
+    <a href="index.html" class="active">Home</a> |
+    <a href="about.html" class="nav-link">About</a>
+  </p>
+</div>
 <hr>
 """
-
 print("Content-type:text/html")
 print(style)
 print("  <body>")
-print("    <h1>JobNest</h1>")
-print("    Find jobs for highschool teens")
+print('    <h1 style="text-align: center;">JobNest</h1>')
+print('    <p style="text-align: center;">Find jobs for highschool teens</p>')
 print(navigator)
 if dbg:
     print("City Selected: " + str(citySelected) +  "</br>")
@@ -155,14 +174,17 @@ if dbg:
     print("        <th>Longitude</th>")
     print("        <th>url</th>")
 else:
-    print("        <th>Distance (mi)</th>")
-    print("        <th>Company</th>")
-    print("        <th>Title</th>")
-    print("        <th>Age</th>")
-    print("        <th>Pay</th>")
-    print("        <th>Address</th>")
-    print("        <th>cityState</th>")
-    print("        <th>url</th>")
+    if phone:
+        print("<th> Jobs </th>")
+    else:
+        print("        <th>Distance (mi)</th>")
+        print("        <th>Company</th>")
+        print("        <th>Title</th>")
+        print("        <th>Age</th>")
+        print("        <th>Pay</th>")
+        print("        <th>Address</th>")
+        print("        <th>cityState</th>")
+        print("        <th>url</th>")
 
 print("      </tr>")
 if dbg:
@@ -175,20 +197,32 @@ if dbg:
                 print("<td>" + str(x) + "</td>")
         print("      </tr>")
 else:
-    for i in jobs:
-        print("      <tr>")
-        for idx, value in enumerate(i):
-            if columns[idx] not in exclude:
-                if value == i[0]:
-                    print("<td style='text-align: center;'>" + str(value) + "</td>")
-                else:
-                    print("<td>" + str(value) + "</td>")
-        print("      </tr>")
+    if phone:
+        for job in jobs:
+            print("<tr>")
+            print("<td>")
+            print(job[1] + ", " +  job[2] + "<br> " + job[0] + " mi, "  + job[4] + "yo, " + job[5] + "<br>" + job[6] + ", " + str(job[7]) + "<br>" + str(job[10]))
+            print("<td>")
+            print("</tr>")
+    else:
+        for i in jobs:
+            print("      <tr>")
+            for idx, value in enumerate(i):
+                if columns[idx] not in exclude:
+                    if value == i[0]:
+                        print("<td style='text-align: center;'>" + str(value) + "</td>")
+                    else:
+                        print("<td>" + str(value) + "</td>")
+            print("      </tr>")
 
 print("    </table>")
 if dbg:
     print("Total jobs: ", len(jobs), "<br>")
+    print(jobs)
+    print ("<font size=+1>Environment</font><br>")
+    for param in os.environ.keys():
+        print("<b>%20s</b>: %s<br>" % (param, os.environ[param]))
     print(lat, long, "<br>")
     print(select, "<br>")
-    print(jobs)
+
 print("  </body>")

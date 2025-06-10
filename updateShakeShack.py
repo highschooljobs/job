@@ -26,7 +26,7 @@ def parse(URL, cursor):
 
     r = requests.get(url=URL)
     if r.status_code != 200:
-        print("ERROR: HTTP Response code  " + r.status_code)
+        print("ERROR: HTTP Response code  " + str(r.status_code))
     time.sleep(1)
     s = r.text
 
@@ -103,12 +103,12 @@ def parseList(URL):
     resultList = []
     r = requests.get(url=URL)
     if r.status_code != 200:
-        print("ERROR: HTTP Response code  " + r.status_code)
+        print("ERROR: HTTP Response code  " + str(r.status_code))
     time.sleep(1)
     s = r.text
 
 
-    pos = s.find('href="/job/', 0)
+    pos = s.find('href="https://shake-shack.daliajobs.com/job/', 0)
     i = 0
     while pos != -1:
 
@@ -122,14 +122,14 @@ def parseList(URL):
         address = address[comma_index + 2:]
         address = address.split(',', 1)[0]
         # look for url
-        iturl = parseTerm(s, 'href="/job/', '"', pos)
+        iturl = parseTerm(s, 'href="https://shake-shack.daliajobs.com/job/', '"', pos)
         iturl = "https://shake-shack.daliajobs.com/job/" + iturl
-        #print("url: ", iturl, flush = True)      
+        print("url: ", iturl, flush = True)      
         # look for longitude
         longitude = 0
 
         # loop back to find the next ID
-        pos = s.find('href="/job/', pos + 10)
+        pos = s.find('href="https://shake-shack.daliajobs.com/job/', pos + 10)
 
         i += 1
         
