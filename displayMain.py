@@ -61,42 +61,85 @@ exclude = ["id", "longitude", "latitude"]
 
 conn.close()
 
-style = """
-<head>
-<style>
-table {
-  margin-top: 20px;
-  font-family: arial, sans-serif;
-  border-collapse: collapse;
-  width: 100%;
-}
 
-body{
-  font-family: arial, sans-serif;
-}
+# change the style if your on mobile view vs computer
+if phone:
+    style = """
+    <head>
+    <style>
+    table {
+     margin-top: 20px;
+    font-family: arial, sans-serif;
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 140%;
+    }
 
-select{
-  font-family: arial, sans-serif;
-  font-size: 110%;
-}
+    body{
+    font-family: arial, sans-serif;
+    font-size: 200%;
+    }
 
-td, th {
-  border: 1px solid #dddddd;
-  text-align: left;
-  padding: 8px;
-}
+    select{
+    font-family: arial, sans-serif;
+    font-size: 110%;
+    }
 
-td:nth-child(2) {
-  max-width: 300px;
-  word-wrap: break-word;
-}
+    td, th {
+    border: 1px solid #dddddd;
+    text-align: left;
+    padding: 18px;
+    }
 
-tr:nth-child(even) {
-  background-color: #dddddd;
-}
-</style>
-</head>
-"""
+    td:nth-child(2) {
+    max-width: 300px;
+    word-wrap: break-word;
+    }
+
+    tr:nth-child(even) {
+    background-color: #dddddd;
+    }
+    </style>
+    </head>
+    """
+else:
+     style = """
+        <head>
+        <style>
+        table {
+        margin-top: 20px;
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+        }
+
+        body{
+        font-family: arial, sans-serif;
+        }
+
+        select{
+        font-family: arial, sans-serif;
+        font-size: 110%;
+        }
+
+        td, th {
+        border: 1px solid #dddddd;
+        text-align: left;
+        padding: 8px;
+        }
+
+        td:nth-child(2) {
+        max-width: 300px;
+        word-wrap: break-word;
+        }
+
+        tr:nth-child(even) {
+        background-color: #dddddd;
+        }
+        </style>
+        </head>
+        """
+
 navigator = """
 <hr>
 <style>
@@ -132,7 +175,7 @@ navigator = """
 print("Content-type:text/html")
 print(style)
 print("  <body>")
-print('    <h1 style="text-align: center;">JobNest</h1>')
+print('    <h1 style="text-align: center;">StartNow</h1>')
 print('    <p style="text-align: center;">Find jobs for highschool teens</p>')
 print(navigator)
 if dbg:
@@ -201,7 +244,9 @@ else:
         for job in jobs:
             print("<tr>")
             print("<td>")
-            print(job[1] + ", " +  job[2] + "<br> " + job[0] + " mi, "  + job[4] + "yo, " + job[5] + "<br>" + job[6] + ", " + str(job[7]) + "<br>" + str(job[10]))
+            print(job[1] + ", " +  job[2] + "<br> ")
+            print(job[6] + ", " + str(job[7]) + "<br>")
+            print(job[0] + " mi, "  + job[4] + "yo, " + job[5]  +  " " + job[10])
             print("<td>")
             print("</tr>")
     else:
