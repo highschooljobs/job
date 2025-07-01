@@ -119,10 +119,10 @@ def parseList(URL) :
         i += 1
 
 
-        if not existsId(id, cursor):
+        if not existsId("Chipotle:" + id, cursor):
             results = parse(iturl, cursor)
             latitude, longitude = getLatLong(address + ", " + results["cityState"])
-            results.update({"id": id})
+            results.update({"id": "Chipotle:" + id})
             results.update({"address": address})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})

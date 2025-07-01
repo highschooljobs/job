@@ -113,7 +113,7 @@ def parseList(URL):
     while pos != -1:
 
         # look for job ID
-        id = parseTerm(s, 'data-jobId="', '"', pos)
+        id = parseTerm(s, 'href="https://shake-shack.daliajobs.com/job/', '/', pos)
         # look for latitude
         latitude = 0
         # look for job address
@@ -135,9 +135,9 @@ def parseList(URL):
         
 
 
-        if not existsId(id, cursor):
+        if not existsId("ShakeShack:" +  id,  cursor):
             results = parse(iturl, cursor)
-            results.update({"id": id})
+            results.update({"id": "ShakeShack:" +  id})
             latitude, longitude = getLatLong(address + ", " + results["cityState"])
             results.update({"address": address})
             results.update({"latitude": latitude})

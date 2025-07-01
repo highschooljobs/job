@@ -130,9 +130,9 @@ def parseList(URL):
             command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(citylat) + "', '" + str(citylong) + "')"
             cursor.execute(command1)
 
-        if not existsId(id, cursor):
+        if not existsId("Panera:" + id, cursor):
             results = parse(iturl)
-            results.update({"id": id})
+            results.update({"id": "Panera:" + id})
             results.update({"address": address})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
