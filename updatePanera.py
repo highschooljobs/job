@@ -4,81 +4,80 @@ import requests
 import sqlite3
 import time, datetime
 import sys
+import json
+import html
 from common import *
 
 def parse(URL):
-    keyTitle = '"title" : '
     keyAge = "years of age"
     keyPay = "pay"
 
-
     results = {
-        "title" : "",
         "age": 0,
         "pay": ""
     }
 
-    r = requests.get(url=URL)
+    try:
+        r = requests.get(url=URL)
+    except Exception as e:
+        print("ERROR: Request failed:", e)
+        return results
+
     if r.status_code != 200:
-        print("ERROR: HTTP Response code  " + str(r.status_code))
+        print("ERROR: HTTP Response code", r.status_code)
+        return results
+
     time.sleep(1)
-    s = r.text
+
+    # Unescape HTML entities like &lt;, &gt;, etc.
+    s = html.unescape(r.text)
 
     # Split the text into lines
     lines = s.split('\n')
 
-    # find the title
-    for line in lines:
-        if keyTitle.lower() in line.lower():
-            loco = line.find(keyTitle) + len(keyTitle) + 1
-            title_str = line[loco: - 2].strip()
-            try:
-                results["title"] = title_str
-            except ValueError:
-                pass
-    
-
-
-    # look for the age
+    # --- Look for age ---
     for line in lines:
         if keyAge.lower() in line.lower():
-            loco = line.lower().find(keyAge.lower())
-            assert loco > -1, "could not find age"
-            loco -= 3
+            # Try to find the number preceding "years of age"
+            words = line.split()
+            for i, word in enumerate(words):
+                if word.isdigit() and i+1 < len(words) and "year" in words[i+1].lower():
+                    results["age"] = int(word)
+                    break
+            if results["age"]:
+                break
 
-            age_str = line[loco:loco + 2].strip()
-            try:
-                results["age"] = int(age_str)
-            except ValueError:
-                pass
-    # look for the pay
+    # --- Look for pay ---
     for line in lines:
         if keyPay.lower() in line.lower():
-            if "$" in line.lower():
+            if "$" in line:
                 loco = line.find("$")
-                subline = line[loco:]  # start at the $
-    
+                subline = line[loco:]
+
                 # Only keep valid characters: $, digits, -, space
-                valid_chars = "$0123456789-– "  # notice: also include "–" (long dash)
+                valid_chars = "$0123456789-–. "
                 pay_str = ""
                 for ch in subline:
                     if ch in valid_chars:
                         pay_str += ch
                     else:
-                        break  # stop when invalid char (like < or >) is found
+                        break  # stop at tag/quote/etc.
 
-                # clean up dashes
-                pay_str = pay_str.replace("–", "-").replace(" -", "-").replace("- ", "-").strip()
+                # Normalize and clean pay string
+                pay_str = (
+                    pay_str.replace("–", "-")  # normalize en-dash
+                            .replace(" -", "-")
+                            .replace("- ", "-")
+                            .strip()
+                )
 
-            else:
-                pay_str = "Competitive"
-            try:
                 results["pay"] = pay_str
-            except ValueError:
-                pass
+                break  # stop after first match
+            else:
+                results["pay"] = "Competitive"
+                break
 
     return results
-
 
 def updateSQL(dictionary, cursor):
     command1 = "INSERT INTO jobs (company, title, id, age, pay, address, cityState, longitude, latitude, url) VALUES ('Panera', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["address"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
@@ -91,41 +90,20 @@ def parseList(URL):
     r = requests.get(url=URL)
     if r.status_code != 200:
         print("ERROR: HTTP Response code  " + r.status_code)
-    time.sleep(1)
-    s = r.text
+    joblist = json.loads(r.text)
 
+    for i in joblist['entries']:
+        id = i["id"]
+        id = str(id)
+        iturl = i['apply_url']
+        title = i["categories"][0]["name"]
+        cityState = i["locations"][0]["canonical_name"]
+        latitude = i["locations"][0]["lat"]
+        longitude = i["locations"][0]["lng"]
+        address = i["locations"][0]["street_address"]  
 
-    pos = s.find('"reqId":"JR', 0)
-    i = 0
-    while pos != -1:
-
-        # look for job ID
-        id = parseTerm(s, '"reqId":"JR', '"', pos)
-        # look for latitude
-        latitude = parseTerm(s, '"latitude":"', '"', pos)
-        # look for job address
-        address = parseTerm(s, '"address":"', '"', pos)
-        address = address.split(',', 1)[0]
-        # look for url
-        iturl = parseTerm(s, '"applyUrl":"', "/apply", pos)
-        #print("url: ", iturl, flush = True)      
-        # look for longitude
-        longitude = parseTerm(s, '"longitude":"', '"', pos)
-        # look for the cityState
-        cityState = parseTerm(s, '"cityState":"', '"', pos)
-
-        # loop back to find the next ID
-        pos = s.find('"reqId":"JR', pos + 10)
-
-        state = cityState.split(",")[-1].strip()
-
-        state = get_state_abbreviation(state)
-
-        cityState = cityState.split(",")[0].strip() + ", " + state
-
-        i += 1
-        
         if not existsCityState(cityState, cursor):
+            print(id)
             citylat, citylong = getLatLong(cityState)
             command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(citylat) + "', '" + str(citylong) + "')"
             cursor.execute(command1)
@@ -134,15 +112,16 @@ def parseList(URL):
             results = parse(iturl)
             results.update({"id": "Panera:" + id})
             results.update({"address": address})
+            results.update({"title": title})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
             results.update({"cityState": cityState})
             results.update({"url": iturl})
             resultList.append(results)
             updateSQL(results, cursor)
-            print("  ", i, " Job ", id, " added", iturl)
+            print("Job ", id, " added", iturl)
         else:
-            print("  ", i, "Job ", id, " already exists", iturl)
+            print("Job ", id, " already exists", iturl)
 
 
 
@@ -171,7 +150,8 @@ master = []
 
 y = int(sys.argv[1])
 for x in range(int(sys.argv[2])):
-    link = "https://careers.panerabread.com/global/en/search-results?keywords=&from=" + str(y) + "0&s=1"
+    link = "https://app.careerarc.com/api/job_maps/150/job_postings?zoom=4&q=&&page=" + str(y) + "&per_page=25&bounds%5Bsouth%5D=6.0253846386907846&bounds%5Bwest%5D=-114.5425058528781&bounds%5Bnorth%5D=60.443442512139285&bounds%5Beast%5D=-78.5073496028781"
+
     results = parseList(link)
     master += results
     y += 1
