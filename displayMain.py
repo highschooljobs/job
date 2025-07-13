@@ -45,10 +45,15 @@ if citySelected:
     minLat = lat - 0.1
     maxLat = lat + 0.1
 
+# Execute SELECT statement
 inBox = '" OR (latitude > ' + str(minLat) + ' AND latitude < ' + str(maxLat) + ' AND longitude > ' + str(minLong) + ' AND longitude < ' + str(maxLong) + '))' if citySelected and lat is not None else ""
 addcity = ' AND (cityState = "' + city + inBox if citySelected and lat is not None else ""
-select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + addcity
-jobsRaw = cursor.execute(select).fetchall()
+if citySelected or dbg:
+    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + addcity
+    cursor.execute(select)
+    jobsRaw = cursor.fetchall()
+else:
+    jobsRaw = []
 
 jobs = []
 for row in jobsRaw:
@@ -139,17 +144,6 @@ else:
     tr:nth-child(even) {
      background-color: #dddddd;
     }
-
-    .centered-select {
-     text-align: center;
-     margin-top: 20px;
-     margin-bottom: 10px;
-    }
-
-    .centered-select select {
-     font-size: 1.1em;
-     padding: 6px;
-    }
     </style>
     </head>
     """
@@ -190,7 +184,7 @@ navigator = """
 print("Content-type:text/html\n")
 print(style)
 print("<body>")
-print('<h1 style="text-align: center;">StartNow</h1>')
+print('<h1 style="text-align: center;">mangohub</h1>')
 print('<p style="text-align: center;">Find jobs for highschool teens</p>')
 print(navigator)
 
@@ -200,23 +194,27 @@ if dbg:
     for i in arguments.keys():
         print(i + " '" + arguments[i].value + "'<br>")
 
-# DROPDOWN MENU (Centered + No Default Selection)
-print('<div class="centered-select">')
+# DROPDOWN MENU
+print('<div style="text-align: center; margin-top: 20px;">')
+print('<label for="citySelect">City: </label>')
 if dbg:
-    print('<select onchange="location = this.options[this.selectedIndex].value + \'&dbg=1\';">')
+    print('<select id="citySelect" onchange="location = this.options[this.selectedIndex].value + \'&dbg=1\';">')
 else:
-    print('<select onchange="location = this.options[this.selectedIndex].value;">')
+    print('<select id="citySelect" onchange="location = this.options[this.selectedIndex].value;">')
 
-print("<option value='' disabled selected>Select a city</option>")
-print("<option value='#' id='currentLocationOption'>Current Location</option>")
+selected_current = " selected" if city == "current" else ""
+print("<option value='https://mangohub.app/?'>Select a City</option>")
+print(f"<option value='#' id='currentLocationOption'{selected_current}>Current Location</option>")
+
+
 for i in cityState:
     if dbg or "CA" in i[0]:
         selectstr = " selected" if citySelected and i[0] == city else ""
         latlong = " None" if i[1] is None or i[2] is None else " " + str(i[1]) + " " + str(i[2])
         geodata = latlong if dbg else ""
-        print("<option value='http://52.53.194.209/?cityState=" + i[0] + "'" + selectstr + ">" + i[0] + geodata + "</option>")
+        print("<option value='https://mangohub.app/?cityState=" + i[0] + "'" + selectstr + ">" + i[0] + geodata + "</option>")
 print("</select>")
-print('</div>')
+print("</div>")
 
 # JavaScript for geolocation
 print("""
@@ -228,7 +226,7 @@ document.querySelector('select').addEventListener('change', function(event) {
                 const lat = position.coords.latitude;
                 const long = position.coords.longitude;
                 const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-                window.location.href = `http://52.53.194.209/?cityState=current&lat=${lat}&long=${long}${dbg}`;
+                window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
             }, function(error) {
                 alert("Geolocation failed: " + error.message);
             });
@@ -240,11 +238,10 @@ document.querySelector('select').addEventListener('change', function(event) {
 </script>
 """)
 
-# If no city selected, show message and skip job table
-if not citySelected:
-    print('<p style="text-align: center; font-size: 1.2em; color: #555;">Please select a city to view job listings.</p>')
-else:
-    # JOBS TABLE
+# JOBS TABLE
+if not jobs and not dbg:
+    print("<p style='text-align: center; margin-top: 20px;'>Please select a city to view jobs.</p>")
+if jobs or dbg:
     print("    <table>")
     print("      <tr>")
     if dbg:
@@ -264,35 +261,37 @@ else:
             print("        <th>url</th>")
     print("      </tr>")
 
-    if dbg:
+if dbg:
+    for i in jobs:
+        print("      <tr>")
+        for x in i:
+            if x == i[0]:
+                print("<td style='text-align: center;'>" + str(x) + "</td>")
+            else:
+                print("<td>" + str(x) + "</td>")
+        print("      </tr>")
+else:
+    if phone:
+        for job in jobs:
+            print("<tr>")
+            print("<td>")
+            print(job[1] + ", " + job[2] + "<br>")
+            print(job[6] + ", " + str(job[7]) + "<br>")
+            print(job[0] + " mi, " + job[4] + "yo, " + job[5] + " " + job[10])
+            print("</td>")
+            print("</tr>")
+    else:
         for i in jobs:
             print("      <tr>")
-            for x in i:
-                if x == i[0]:
-                    print("<td style='text-align: center;'>" + str(x) + "</td>")
-                else:
-                    print("<td>" + str(x) + "</td>")
+            for idx, value in enumerate(i):
+                if columns[idx] not in exclude:
+                    if value == i[0]:
+                        print("<td style='text-align: center;'>" + str(value) + "</td>")
+                    else:
+                        print("<td>" + str(value) + "</td>")
             print("      </tr>")
-    else:
-        if phone:
-            for job in jobs:
-                print("<tr><td>")
-                print(job[1] + ", " + job[2] + "<br>")
-                print(job[6] + ", " + str(job[7]) + "<br>")
-                print(job[0] + " mi, " + job[4] + "yo, " + job[5] + " " + job[10])
-                print("</td></tr>")
-        else:
-            for i in jobs:
-                print("      <tr>")
-                for idx, value in enumerate(i):
-                    if columns[idx] not in exclude:
-                        if value == i[0]:
-                            print("<td style='text-align: center;'>" + str(value) + "</td>")
-                        else:
-                            print("<td>" + str(value) + "</td>")
-                print("      </tr>")
 
-    print("    </table>")
+print("    </table>")
 
 if dbg:
     print("Total jobs: ", len(jobs), "<br>")
@@ -304,4 +303,3 @@ if dbg:
     print(select, "<br>")
 
 print("</body>")
-
