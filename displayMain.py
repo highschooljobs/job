@@ -76,36 +76,44 @@ if phone:
     <head>
     <style>
     table {
-     margin-top: 20px;
-     font-family: arial, sans-serif;
-     border-collapse: collapse;
-     width: 100%;
-     font-size: 140%;
+    border-collapse: collapse;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ddd;
     }
-
     body {
      font-family: arial, sans-serif;
      font-size: 200%;
     }
-
-    select {
+    select, input {
      font-family: arial, sans-serif;
      font-size: 110%;
     }
-
-    td, th {
-     border: 1px solid #dddddd;
-     text-align: left;
-     padding: 18px;
+    th {
+    background-color: #f9fafb;
+    color: #333;
+    font-weight: 600;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 16px;
     }
 
-    td:nth-child(2) {
-     max-width: 300px;
-     word-wrap: break-word;
+    td {
+    padding: 10px 15px;
+    border: 1px solid #eee;
+    font-size: 15px;
     }
 
     tr:nth-child(even) {
-     background-color: #dddddd;
+    background-color: #f7f7f7;
+    }   
+
+    tr:hover {
+    background-color: #eef2f7;
+    transition: background-color 0.2s ease-in-out;
     }
     </style>
     </head>
@@ -115,35 +123,44 @@ else:
     <head>
     <style>
     table {
-     margin-top: 20px;
-     font-family: arial, sans-serif;
-     border-collapse: collapse;
-     width: 100%;
+    border-collapse: collapse;
+    width: 100%;
+    font-family: Arial, sans-serif;
+    margin-top: 20px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border: 1px solid #ddd;
     }
-
     body {
      font-family: arial, sans-serif;
     }
-
-    select {
+    select, input {
      font-family: arial, sans-serif;
      font-size: 110%;
     }
-
-    td, th {
-     border: 1px solid #dddddd;
-     text-align: left;
-     padding: 8px;
+    th {
+    background-color: #f9fafb;
+    color: #333;
+    font-weight: 600;
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    text-align: left;
+    font-size: 16px;
     }
 
-    td:nth-child(2) {
-     max-width: 300px;
-     word-wrap: break-word;
-    }
+    td {
+    padding: 10px 15px;
+    border: 1px solid #eee;
+    font-size: 15px;
+    }   
 
     tr:nth-child(even) {
-     background-color: #dddddd;
+    background-color: #f7f7f7;
     }
+
+    tr:hover {
+    background-color: #eef2f7;
+    transition: background-color 0.2s ease-in-out;
+     }
     </style>
     </head>
     """
@@ -156,22 +173,18 @@ navigator = """
     font-weight: normal;
     color: black;
   }
-
   .nav-link:hover {
     font-weight: bold;
   }
-
   .active {
     font-weight: bold;
     color: black;
     text-decoration: none;
   }
-
   .nav-container {
     text-align: center;
   }
 </style>
-
 <div class="nav-container">
   <p>
     <a href="index.html" class="active">Home</a> |
@@ -194,47 +207,46 @@ if dbg:
     for i in arguments.keys():
         print(i + " '" + arguments[i].value + "'<br>")
 
-# DROPDOWN MENU
+# Search bar and buttons
 print('<div style="text-align: center; margin-top: 20px;">')
-print('<label for="citySelect">City: </label>')
-if dbg:
-    print('<select id="citySelect" onchange="location = this.options[this.selectedIndex].value + \'&dbg=1\';">')
-else:
-    print('<select id="citySelect" onchange="location = this.options[this.selectedIndex].value;">')
-
-selected_current = " selected" if city == "current" else ""
-print("<option value='https://mangohub.app/?'>Select a City</option>")
-print(f"<option value='#' id='currentLocationOption'{selected_current}>Current Location</option>")
-
-
+print('<label for="citySearch">Search City: </label>')
+print('<input list="cities" id="citySearch" placeholder="Start typing..." />')
+print('<button onclick="goToCity()">Go</button>')
+print('<button onclick="useCurrentLocation()">Use Current Location</button>')
+print('<datalist id="cities">')
 for i in cityState:
     if dbg or "CA" in i[0]:
-        selectstr = " selected" if citySelected and i[0] == city else ""
-        latlong = " None" if i[1] is None or i[2] is None else " " + str(i[1]) + " " + str(i[2])
-        geodata = latlong if dbg else ""
-        print("<option value='https://mangohub.app/?cityState=" + i[0] + "'" + selectstr + ">" + i[0] + geodata + "</option>")
-print("</select>")
-print("</div>")
+        print(f"<option value='{i[0]}'>")
+print('</datalist>')
+print('</div>')
 
-# JavaScript for geolocation
+# JavaScript for geolocation + search
 print("""
 <script>
-document.querySelector('select').addEventListener('change', function(event) {
-    if (this.value === '#') {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                const lat = position.coords.latitude;
-                const long = position.coords.longitude;
-                const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-                window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
-            }, function(error) {
-                alert("Geolocation failed: " + error.message);
-            });
-        } else {
-            alert("Geolocation is not supported by this browser.");
-        }
+function goToCity() {
+    const city = document.getElementById("citySearch").value;
+    const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
+    const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+    if (validCities.includes(city)) {
+        window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
+    } else {
+        alert("Please select a valid city from the list.");
     }
-});
+}
+function useCurrentLocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            const lat = position.coords.latitude;
+            const long = position.coords.longitude;
+            const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+            window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
+        }, function(error) {
+            alert("Geolocation failed: " + error.message);
+        });
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
 </script>
 """)
 
@@ -243,55 +255,23 @@ if not jobs and not dbg:
     print("<p style='text-align: center; margin-top: 20px;'>Please select a city to view jobs.</p>")
 if jobs or dbg:
     print("    <table>")
-    print("      <tr>")
-    if dbg:
-        for col in columns:
+    print("      <tr>")  # <-- Fixed: closing angle bracket added
+    for col in columns:
+        if col not in exclude:
             print(f"        <th>{col.capitalize()}</th>")
-    else:
-        if phone:
-            print("<th> Jobs </th>")
-        else:
-            print("        <th>Distance (mi)</th>")
-            print("        <th>Company</th>")
-            print("        <th>Title</th>")
-            print("        <th>Age</th>")
-            print("        <th>Pay</th>")
-            print("        <th>Address</th>")
-            print("        <th>cityState</th>")
-            print("        <th>url</th>")
     print("      </tr>")
 
-if dbg:
     for i in jobs:
         print("      <tr>")
-        for x in i:
-            if x == i[0]:
-                print("<td style='text-align: center;'>" + str(x) + "</td>")
-            else:
-                print("<td>" + str(x) + "</td>")
+        for idx, value in enumerate(i):
+            if columns[idx] not in exclude:
+                if value == i[0]:
+                    print("<td style='text-align: center;'>" + str(value) + "</td>")
+                else:
+                    print("<td>" + str(value) + "</td>")
         print("      </tr>")
-else:
-    if phone:
-        for job in jobs:
-            print("<tr>")
-            print("<td>")
-            print(job[1] + ", " + job[2] + "<br>")
-            print(job[6] + ", " + str(job[7]) + "<br>")
-            print(job[0] + " mi, " + job[4] + "yo, " + job[5] + " " + job[10])
-            print("</td>")
-            print("</tr>")
-    else:
-        for i in jobs:
-            print("      <tr>")
-            for idx, value in enumerate(i):
-                if columns[idx] not in exclude:
-                    if value == i[0]:
-                        print("<td style='text-align: center;'>" + str(value) + "</td>")
-                    else:
-                        print("<td>" + str(value) + "</td>")
-            print("      </tr>")
 
-print("    </table>")
+    print("    </table>")
 
 if dbg:
     print("Total jobs: ", len(jobs), "<br>")
@@ -303,3 +283,4 @@ if dbg:
     print(select, "<br>")
 
 print("</body>")
+
