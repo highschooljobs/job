@@ -70,50 +70,41 @@ exclude = ["id", "longitude", "latitude"]
 
 conn.close()
 
-# Mobile vs Desktop style
 if phone:
     style = """
     <head>
     <style>
     table {
-    border-collapse: collapse;
-    width: 100%;
-    font-family: Arial, sans-serif;
-    margin-top: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid #ddd;
+     margin-top: 20px;
+     font-family: arial, sans-serif;
+     border-collapse: collapse;
+     width: 100%;
+     font-size: 140%;
     }
+
     body {
      font-family: arial, sans-serif;
      font-size: 200%;
     }
-    select, input {
+
+    select {
      font-family: arial, sans-serif;
      font-size: 110%;
     }
-    th {
-    background-color: #f9fafb;
-    color: #333;
-    font-weight: 600;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    text-align: left;
-    font-size: 16px;
+
+    td, th {
+     border: 1px solid #dddddd;
+     text-align: left;
+     padding: 18px;
     }
 
-    td {
-    padding: 10px 15px;
-    border: 1px solid #eee;
-    font-size: 15px;
+    td:nth-child(2) {
+     max-width: 300px;
+     word-wrap: break-word;
     }
 
     tr:nth-child(even) {
-    background-color: #f7f7f7;
-    }   
-
-    tr:hover {
-    background-color: #eef2f7;
-    transition: background-color 0.2s ease-in-out;
+     background-color: #dddddd;
     }
     </style>
     </head>
@@ -123,44 +114,50 @@ else:
     <head>
     <style>
     table {
-    border-collapse: collapse;
-    width: 100%;
-    font-family: Arial, sans-serif;
-    margin-top: 20px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    border: 1px solid #ddd;
+     margin-top: 20px;
+     font-family: arial, sans-serif;
+     border-collapse: collapse;
+     width: 100%;
     }
+
     body {
      font-family: arial, sans-serif;
     }
-    select, input {
+
+    select {
      font-family: arial, sans-serif;
      font-size: 110%;
     }
-    th {
-    background-color: #f9fafb;
-    color: #333;
-    font-weight: 600;
-    padding: 12px 15px;
-    border: 1px solid #ddd;
-    text-align: left;
-    font-size: 16px;
+
+    td, th {
+     border: 1px solid #dddddd;
+     text-align: left;
+     padding: 8px;
     }
 
-    td {
-    padding: 10px 15px;
-    border: 1px solid #eee;
-    font-size: 15px;
-    }   
+    td:nth-child(2) {
+     max-width: 300px;
+     word-wrap: break-word;
+    }
 
     tr:nth-child(even) {
-    background-color: #f7f7f7;
+     background-color: #dddddd;
     }
 
+    .centered-select {
+     text-align: center;
+     margin-top: 20px;
+     margin-bottom: 10px;
+    }
+
+    .centered-select select {
+     font-size: 1.1em;
+     padding: 6px;
+    }
     tr:hover {
     background-color: #eef2f7;
     transition: background-color 0.2s ease-in-out;
-     }
+    }
     </style>
     </head>
     """
@@ -207,55 +204,70 @@ if dbg:
     for i in arguments.keys():
         print(i + " '" + arguments[i].value + "'<br>")
 
-# Search bar and buttons
-print('<div style="text-align: center; margin-top: 20px;">')
-print('<label for="citySearch">Search City: </label>')
-print('<input list="cities" id="citySearch" placeholder="Start typing..." />')
-print('<button onclick="goToCity()">Go</button>')
-print('<button onclick="useCurrentLocation()">Use Current Location</button>')
-print('<datalist id="cities">')
+# Search bar with Enter key support
+print('''
+<div style="text-align: center; margin-top: 20px;">
+  <label for="citySearch">Search City: </label>
+  <input
+    list="cities"
+    id="citySearch"
+    placeholder="Start typing..."
+    onkeydown="handleKey(event)"
+  />
+  <button onclick="useCurrentLocation()">Use Current Location</button>
+  <datalist id="cities">
+''')
+
 for i in cityState:
     if dbg or "CA" in i[0]:
         print(f"<option value='{i[0]}'>")
 print('</datalist>')
 print('</div>')
 
-# JavaScript for geolocation + search
-print("""
+# JavaScript
+print('''
 <script>
 function goToCity() {
-    const city = document.getElementById("citySearch").value;
-    const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
-    const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-    if (validCities.includes(city)) {
-        window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
-    } else {
-        alert("Please select a valid city from the list.");
-    }
+  const city = document.getElementById("citySearch").value;
+  const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
+  const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+  if (validCities.includes(city)) {
+    window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
+  } else {
+    alert("Please select a valid city from the list.");
+  }
 }
+
 function useCurrentLocation() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function(position) {
-            const lat = position.coords.latitude;
-            const long = position.coords.longitude;
-            const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-            window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
-        }, function(error) {
-            alert("Geolocation failed: " + error.message);
-        });
-    } else {
-        alert("Geolocation is not supported by this browser.");
-    }
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      const lat = position.coords.latitude;
+      const long = position.coords.longitude;
+      const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+      window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
+    }, function(error) {
+      alert("Geolocation failed: " + error.message);
+    });
+  } else {
+    alert("Geolocation is not supported by this browser.");
+  }
+}
+
+function handleKey(event) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    goToCity();
+  }
 }
 </script>
-""")
+''')
 
 # JOBS TABLE
 if not jobs and not dbg:
     print("<p style='text-align: center; margin-top: 20px;'>Please select a city to view jobs.</p>")
 if jobs or dbg:
     print("    <table>")
-    print("      <tr>")  # <-- Fixed: closing angle bracket added
+    print("      <tr>")
     for col in columns:
         if col not in exclude:
             print(f"        <th>{col.capitalize()}</th>")
