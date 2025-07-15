@@ -2,6 +2,8 @@
 import os.path
 import sqlite3
 import cgi
+import requests
+import json
 from common import *
 
 arguments = cgi.FieldStorage()
@@ -10,6 +12,21 @@ city = arguments["cityState"].value if citySelected else ""
 
 #check if user is on a phone
 phone = "Phone" in os.environ["HTTP_USER_AGENT"]
+
+#get the ip address of user
+ip = os.environ["REMOTE_ADDR"]
+
+#using ip address, get lat and long of user
+url =  "https://api.ipgeolocation.io/v2/ipgeo?apiKey=78e184f3697b437f933f83d4419f8712&ip=" + str(ip)
+payload = {}
+headers = {}
+
+response = requests.request("GET", url, headers=headers, data=payload)
+data = json.loads(response.text)
+
+usr_lat = data['location']['latitude']
+usr_long = data['location']['longitude']
+
 
 dbg_mode = "dbg" in arguments
 dbg = True if dbg_mode and arguments["dbg"].value  == '1' else False
@@ -49,18 +66,31 @@ if citySelected:
 # Execute SELECT statement
 inBox = '" OR (latitude > ' + str(minLat) + ' AND latitude < ' + str(maxLat) + ' AND longitude > ' + str(minLong) + ' AND longitude < ' + str(maxLong) + '))' if citySelected and lat is not None else ""
 addcity = ' AND (cityState = "' + city + inBox if citySelected and lat is not None else ""
-if citySelected or dbg:
+if not citySelected:
+    # Use IP-based location
+    lat = float(usr_lat)
+    long = float(usr_long)
+
+    minLong = long - 0.1
+    maxLong = long + 0.1
+    minLat = lat - 0.1
+    maxLat = lat + 0.1
+
+    # Add bounding box query
+    addcity = f' AND (latitude > {minLat} AND latitude < {maxLat} AND longitude > {minLong} AND longitude < {maxLong})'
+
+# Build SQL query regardless of method used
+if citySelected or dbg or (lat is not None and long is not None):
     select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + addcity
     cursor.execute(select)
     jobsRaw = cursor.fetchall()
 else:
     jobsRaw = []
 
-
 jobs = []
 for row in jobsRaw:
     job = []
-    distance = calcDistance(lat, long, row[7], row[8]) if citySelected and lat is not None else 0
+    distance = calcDistance(lat, long, row[7], row[8]) if lat is not None and long is not None else 0
     for x in row:
         job.append(x)
     job.insert(0, str(round(distance, 1)))
@@ -77,6 +107,15 @@ conn.close()
 if phone:
     style = """
     <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-725428PR4P');
+    </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
     table {
@@ -125,6 +164,15 @@ if phone:
 else:
      style = """
         <head>
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
+        <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+
+        gtag('config', 'G-725428PR4P');
+        </script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <style>
         table {
@@ -219,13 +267,14 @@ if dbg:
 
 
 # Search bar with Enter key support
-print('''
+print(f'''
 <div style="text-align: center; margin-top: 20px;">
   <label for="citySearch">Search City: </label>
   <input
     list="cities"
     id="citySearch"
     placeholder="Start typing..."
+    value="{city}"
     onkeydown="handleKey(event)"
   />
   <button onclick="useCurrentLocation()" title="Use Current Location"><i class="fas fa-location-crosshairs"></i></button>

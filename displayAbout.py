@@ -5,6 +5,15 @@ phone = "Phone" in os.environ["HTTP_USER_AGENT"]
 if phone:
     style = """
     <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-725428PR4P');
+    </script>
     <style>
     table {
      margin-top: 20px;
@@ -45,7 +54,16 @@ if phone:
 else:
     style = """
 <head>
-<style>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-725428PR4P');
+    </script>
+    <style>
 body {
   font-family: Arial, sans-serif;
   text-align: center;
@@ -158,7 +176,7 @@ print("<head>")
 print("<meta charset='UTF-8'>")
 print("</head>")
 print("  <body>")
-print('    <h1 style="text-align: center;">StartNow</h1>')
+print('    <h1 style="text-align: center;">mangohub</h1>')
 print(navigator)
 print('    <h2 style="text-align: center;">About</h2>')
 print('<p>Finding a job as a teen is tough—we get it because we’ve been there too. That’s why we built JobNest, a spot made just for teens under 18 to find real, updated job listings. Whether you’re hunting for your first part-time gig, a summer job, or something flexible after school, we help you easily see who’s hiring and what they need from you. No stress—just straightforward help so you can start gaining experience, making money, and setting up your future.</p>')
