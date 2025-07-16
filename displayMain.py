@@ -1,14 +1,31 @@
 #!/usr/bin/env python3
 import os.path
 import sqlite3
-import cgi
 import requests
 import json
+import os
+from urllib.parse import parse_qs
 from common import *
 
-arguments = cgi.FieldStorage()
-citySelected = "cityState" in arguments
-city = arguments["cityState"].value if citySelected else ""
+#this is the jobpath to the database
+jobpath = "/var/lib/db/jobs.db"
+
+# function to determine if cityState is valid or not
+def isBadCity(city):
+    return any(char in city for char in ["'", '"', ";", "--", "<", ">", "\\"])
+# Connect to the database
+conn = sqlite3.connect(jobpath)
+cursor = conn.cursor()
+
+query_string = os.environ.get("QUERY_STRING", "")
+arguments = parse_qs(query_string)
+
+cityFound = "cityState" in arguments
+city = arguments["cityState"][0] if cityFound else ""
+cursor.execute('SELECT cityState FROM cityState')
+validCities = {row[0] for row in cursor.fetchall()}
+
+citySelected = cityFound and not isBadCity(city) and city in validCities
 
 #check if user is on a phone
 phone = "Phone" in os.environ["HTTP_USER_AGENT"]
@@ -29,17 +46,13 @@ usr_long = data['location']['longitude']
 
 
 dbg_mode = "dbg" in arguments
-dbg = True if dbg_mode and arguments["dbg"].value  == '1' else False
+dbg = True if dbg_mode and arguments["dbg"][0]  == '1' else False
 
-jobpath = "/var/lib/db/jobs.db"
 
 if not os.path.exists(jobpath):
     print("Error: jobs.db not found!")
     exit()
 
-# Connect to the database
-conn = sqlite3.connect(jobpath)
-cursor = conn.cursor()
 
 cursor.execute('SELECT cityState, latitude, longitude FROM cityState')
 cityState = cursor.fetchall()
@@ -49,8 +62,8 @@ cityState.sort()
 lat = long = None
 if citySelected:
     if city == "current" and "lat" in arguments and "long" in arguments:
-        lat = float(arguments["lat"].value)
-        long = float(arguments["long"].value)
+        lat = float(arguments["lat"][0])
+        long = float(arguments["long"][0])
     else:
         cursor.execute('SELECT latitude, longitude FROM cityState WHERE cityState = ?', (city,))
         latLong = cursor.fetchall()
@@ -107,6 +120,15 @@ conn.close()
 if phone:
     style = """
     <head>
+    <link rel="icon" href="/mangohub.png" type="image/png">
+    <title>MangoHub - Jobs for High School Teens</title>
+    <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them.">
+    <meta name="keywords" content="teen jobs, high school jobs, part-time jobs, local jobs, student employment">
+    <meta name="author" content="MangoHub">
+    <meta property="og:title" content="MangoHub - Jobs for High School Teens">
+    <meta property="og:description" content="Find local jobs for high school students.">
+    <meta property="og:image" content="https://mangohub.app/mangohub.png">
+    <meta property="og:url" content="https://mangohub.app/">
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
     <script>
@@ -151,7 +173,7 @@ if phone:
     background-color: #dddddd;
     }
     button i {
-    font-size: 20px;
+    font-size: 40px;
     }
     button {
     background: none;
@@ -164,6 +186,16 @@ if phone:
 else:
      style = """
         <head>
+        <link rel="icon" href="/mangohub.png" type="image/png">
+       <title>MangoHub - Jobs for High School Teens</title>
+        <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them.">
+        <meta name="keywords" content="teen jobs, high school jobs, part-time jobs, local jobs, student employment">
+        <meta name="author" content="MangoHub">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta property="og:title" content="MangoHub - Jobs for High School Teens">
+        <meta property="og:description" content="Find local jobs for high school students.">
+        <meta property="og:image" content="https://mangohub.app/mangohub.png">
+        <meta property="og:url" content="https://mangohub.app/">
         <!-- Google tag (gtag.js) -->
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
         <script>
@@ -263,18 +295,23 @@ if dbg:
     print("City Selected: " + str(citySelected) +  "</br>")
     print("City: '" + city + "'</br>")
     for i in arguments.keys():
-        print(i + " '" +  arguments[i].value + "'</br>")
+        print(i + " '" +  arguments[i][0] + "'</br>")
 
 
 # Search bar with Enter key support
-print(f'''
+print('''
 <div style="text-align: center; margin-top: 20px;">
   <label for="citySearch">Search City: </label>
   <input
     list="cities"
     id="citySearch"
     placeholder="Start typing..."
+    ''')
+if citySelected:
+    print(f'''
     value="{city}"
+    ''')
+print('''
     onkeydown="handleKey(event)"
   />
   <button onclick="useCurrentLocation()" title="Use Current Location"><i class="fas fa-location-crosshairs"></i></button>
@@ -286,6 +323,32 @@ for i in cityState:
         print(f"<option value='{i[0]}'>")
 print('</datalist>')
 print('</div>')
+
+
+#java script
+print('''
+<script>
+  // Dynamically injected valid city list from Python
+  const knownCities = [
+''')
+for i in cityState:
+    print(f'    "{i[0]}",')
+print('''
+  ];
+
+  const params = new URLSearchParams(window.location.search);
+  const city = params.get("cityState");
+
+  // If cityState is invalid, clean the URL
+  if (city && !knownCities.includes(city)) {
+    params.delete("cityState");
+    params.delete("lat");
+    params.delete("long");
+    const newUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
+    window.history.replaceState({}, "", newUrl);
+  }
+</script>
+''')
 
 # JavaScript
 print('''
