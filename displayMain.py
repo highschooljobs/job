@@ -182,6 +182,20 @@ style = """
         border: none;
         cursor: pointer;
         }
+        .header-background {
+        background-image: url('https://mangohub.app/mangobackground1.png');
+        background-size: auto;
+        background-repeat: repeat -x;
+        background-position: center -50px;
+        text-align: center;
+        padding: 60px 0;
+        color: black;
+        }
+        .header-background h1, .header-background p {
+        margin: 0;
+        padding: 0;
+        }       
+
         @media only screen and (max-width: 1000px) {
         /* Phone-specific styles here */
         body {
@@ -227,8 +241,12 @@ navigator = """
 print("Content-type:text/html")
 print(style)
 print("  <body>")
-print('    <h1 style="text-align: center;">mangohub</h1>')
-print('    <p style="text-align: center;">Find jobs for highschool teens</p>')
+print('''
+<div class="header-background">
+  <h1>mangohub</h1>
+  <p>Find jobs for highschool teens</p>
+</div>
+''')
 print(navigator)
 if dbg:
     print("City Selected: " + str(citySelected) +  "</br>")
@@ -258,8 +276,7 @@ print('''
 ''')
 
 for i in cityState:
-    if dbg or "CA" in i[0]:
-        print(f"<option value='{i[0]}'>")
+    print(f"<option value='{i[0]}'>")
 print('</datalist>')
 print('</div>')
 

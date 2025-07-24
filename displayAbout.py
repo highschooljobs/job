@@ -39,10 +39,6 @@ hr {
   border-top: 1px solid #ccc;
   margin: 20px 0;
 }
-h1 {
-  margin-top: 5px;
-  margin-bottom: 10px;
-}
 .nav-link {
   text-decoration: none;
   color: #333;
@@ -75,6 +71,21 @@ footer {
   padding: 20px 10px;
   background-color: #f0f0f0;
 }
+        .header-background {
+        background-image: url('https://mangohub.app/mangobackground1.png');
+        background-size: auto;
+        background-repeat: repeat -x;
+        background-position: center -50px;
+        text-align: center;
+        padding: 60px 0;
+        color: black;
+        }
+        .header-background h1, .header-background p {
+        margin: 0;
+        padding: 0;
+        }
+
+
 @media only screen and (max-width: 1000px) {
   /* Phone-specific styles here */
   body {
@@ -108,7 +119,11 @@ print("<html>")
 print("<head><meta charset='UTF-8'></head>")
 print("<body>")
 print('<main>')
-print('<h1>mangohub</h1>')
+print("""
+<div class="header-background">
+  <h1>mangohub</h1>
+</div>
+""")
 print(navigator)
 print('<h2>About</h2>')
 print('<p>Finding a job as a teen is tough—we get it because we’ve been there too. That’s why we built mangohub, a spot made just for teens under 18 to find real, updated job listings. Whether you’re hunting for your first part-time gig, a summer job, or something flexible after school, we help you easily see who’s hiring and what they need from you. No stress—just straightforward help so you can start gaining experience, making money, and setting up your future.</p>')
