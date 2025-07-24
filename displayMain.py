@@ -28,7 +28,7 @@ validCities = {row[0] for row in cursor.fetchall()}
 citySelected = cityFound and not isBadCity(city) and city in validCities
 
 #check if user is on a phone
-phone = "Phone" in os.environ["HTTP_USER_AGENT"]
+phone = "Phone" in os.environ["HTTP_USER_AGENT"] or "Mobile" in os.environ["HTTP_USER_AGENT"]
 
 #get the ip address of user
 ip = os.environ["REMOTE_ADDR"]
@@ -117,74 +117,7 @@ conn.close()
 
 
 # change the style if your on mobile view vs computer
-if phone:
-    style = """
-    <head>
-    <link rel="icon" href="/mangohub.png" type="image/png">
-    <title>MangoHub - Jobs for High School Teens</title>
-    <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them.">
-    <meta name="keywords" content="teen jobs, high school jobs, part-time jobs, local jobs, student employment">
-    <meta name="author" content="MangoHub">
-    <meta property="og:title" content="MangoHub - Jobs for High School Teens">
-    <meta property="og:description" content="Find local jobs for high school students.">
-    <meta property="og:image" content="https://mangohub.app/mangohub.png">
-    <meta property="og:url" content="https://mangohub.app/">
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
-    <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'G-725428PR4P');
-    </script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-    table {
-     margin-top: 20px;
-    font-family: arial, sans-serif;
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 140%;
-    }
-
-    body{
-    font-family: arial, sans-serif;
-    font-size: 200%;
-    }
-
-    select, input{
-    font-family: arial, sans-serif;
-    font-size: 110%;
-    }
-
-    td, th {
-    border: 1px solid #dddddd;
-    text-align: left;
-    padding: 18px;
-    }
-
-    td:nth-child(2) {
-    max-width: 300px;
-    word-wrap: break-word;
-    }
-
-    tr:nth-child(even) {
-    background-color: #dddddd;
-    }
-    button i {
-    font-size: 40px;
-    }
-    button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    }
-    </style>
-    </head>
-    """
-else:
-     style = """
+style = """
         <head>
         <link rel="icon" href="/mangohub.png" type="image/png">
        <title>MangoHub - Jobs for High School Teens</title>
@@ -249,6 +182,12 @@ else:
         border: none;
         cursor: pointer;
         }
+        @media only screen and (max-width: 1000px) {
+        /* Phone-specific styles here */
+        body {
+        font-size: 100%;
+        }
+
         </style>
         </head>
         """
