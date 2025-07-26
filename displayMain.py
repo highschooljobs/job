@@ -262,6 +262,7 @@ print('''
   <input
     list="cities"
     id="citySearch"
+    oninput="handleInput()"
     placeholder="Start typing..."
     ''')
 if citySelected:
@@ -338,6 +339,13 @@ function useCurrentLocation() {
 function handleKey(event) {
   if (event.key === "Enter") {
     event.preventDefault();
+    goToCity();
+  }
+}
+function handleInput() {
+  const input = document.getElementById("citySearch").value;
+  const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
+  if (validCities.includes(input)) {
     goToCity();
   }
 }

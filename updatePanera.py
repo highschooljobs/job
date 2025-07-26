@@ -80,8 +80,25 @@ def parse(URL):
     return results
 
 def updateSQL(dictionary, cursor):
-    command1 = "INSERT INTO jobs (company, title, id, age, pay, address, cityState, longitude, latitude, url) VALUES ('Panera', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["address"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
-    cursor.execute(command1)
+    command1 = """
+    INSERT INTO jobs (
+        company, title, id, age, pay, address, cityState, longitude, latitude, url
+    ) VALUES (
+        'Panera', ?, ?, ?, ?, ?, ?, ?, ?, ?
+    )
+    """
+
+    values = (
+        dictionary["title"],
+        dictionary["id"],
+        dictionary["age"],
+        dictionary["pay"],
+        dictionary["address"],
+        dictionary["cityState"],
+        dictionary["longitude"],
+        dictionary["latitude"],
+        f'<a href="{dictionary["url"]}" target="_blank"> Apply</a>'
+    )
 
 
 def parseList(URL):
@@ -104,6 +121,9 @@ def parseList(URL):
 
         if not existsCityState(cityState, cursor):
             print(id)
+            if len(cityState) < 4:
+                print("job " + str(id) + " skipped because has invalid cityState " + cityState)
+                continue
             citylat, citylong = getLatLong(cityState)
             command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(citylat) + "', '" + str(citylong) + "')"
             cursor.execute(command1)
