@@ -22,7 +22,7 @@ arguments = parse_qs(query_string)
 
 cityFound = "cityState" in arguments
 city = arguments["cityState"][0] if cityFound else ""
-cursor.execute('SELECT cityState FROM cityState')
+cursor.execute('SELECT cityState FROM cityStates')
 validCities = {row[0] for row in cursor.fetchall()}
 
 citySelected = cityFound and not isBadCity(city) and city in validCities
@@ -54,7 +54,7 @@ if not os.path.exists(jobpath):
     exit()
 
 
-cursor.execute('SELECT cityState, latitude, longitude FROM cityState')
+cursor.execute('SELECT cityState, latitude, longitude FROM cityStates')
 cityState = cursor.fetchall()
 cityState.sort(key=lambda x: x[0])
 cityState.sort()
@@ -65,7 +65,7 @@ if citySelected:
         lat = float(arguments["lat"][0])
         long = float(arguments["long"][0])
     else:
-        cursor.execute('SELECT latitude, longitude FROM cityState WHERE cityState = ?', (city,))
+        cursor.execute('SELECT latitude, longitude FROM cityStates WHERE cityState = ?', (city,))
         latLong = cursor.fetchall()
         lat = float(latLong[0][0])
         long = float(latLong[0][1])
@@ -107,6 +107,11 @@ for row in jobsRaw:
     for x in row:
         job.append(x)
     job.insert(0, str(round(distance, 1)))
+    urlidx = len(job)-1
+    atag = job[urlidx]
+    url = atag[9:-28]
+    fulltag = '<a href="' + url + '"  ping="https://mangohub.app/ping?joburl=' + url + '" target="_blank"> Apply</a>'
+    job[urlidx] = fulltag
     jobs.append(job)
 jobs.sort(key=lambda x : float(x[0]))
 
@@ -155,25 +160,40 @@ style = """
         font-family: arial, sans-serif;
         font-size: 110%;
         }
-
         td, th {
-        border: 1px solid #dddddd;
-        text-align: left;
-        padding: 8px;
+          border: 1px solid #e0e0e0;
+          text-align: left;
+          padding: 12px 16px;
+          vertical-align: middle;
         }
 
         td:nth-child(2) {
-        max-width: 300px;
-        word-wrap: break-word;
+          max-width: 300px;
+          word-wrap: break-word;
         }
 
         tr:nth-child(even) {
-        background-color: #dddddd;
+          background-color: #f9f9f9;
         }
+
         tr:hover {
-        background-color: #eef2f7;
-        transition: background-color 0.2s ease-in-out;
+          background-color: #f0f4ff;
+          transition: background-color 0.2s ease-in-out;
         }
+
+        th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+          color: #333;
+        }
+
+        table {
+        border-collapse: separate;
+        border-spacing: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        }
+
         button i {
         font-size: 20px;
         }
@@ -183,7 +203,7 @@ style = """
         cursor: pointer;
         }
         .header-background {
-        background-image: url('https://mangohub.app/mangobackground1.png');
+        background-image: url('https://mangohub.app/mangobackground.png');
         background-size: auto;
         background-repeat: repeat -x;
         background-position: center -50px;
@@ -200,6 +220,9 @@ style = """
         /* Phone-specific styles here */
         body {
         font-size: 100%;
+        }
+        table {
+        font-size: 110%;
         }
 
         </style>
@@ -233,7 +256,8 @@ navigator = """
 <div class="nav-container">
   <p>
     <a href="index.html" class="active">Home</a> |
-    <a href="about.html" class="nav-link">About</a>
+    <a href="about.html" class="nav-link">About</a> |
+    <a href="blog.html" class="nav-link">Blog</a>
   </p>
 </div>
 <hr>
@@ -399,10 +423,10 @@ if jobs or dbg:
             for job in jobs:
                 print("<tr>")
                 print("<td>")
-                print(job[1] + ", " +  job[2] + "<br> ")
+                print(job[1] + ", " +  str(job[2]) + "<br> ")
                 print(job[6] + ", " + str(job[7]) + "<br>")
-                print(job[0] + " mi, "  + job[4] + "yo, " + job[5]  +  " " + job[10])
-                print("<td>")
+                print(job[0] + " mi, "  + str(job[4]) + "yo, " + str(job[5])  +  " " + job[10])
+                print("</td>")
                 print("</tr>")
         else:
             for i in jobs:
