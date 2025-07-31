@@ -1,5 +1,7 @@
 from geopy.geocoders import GoogleV3
 import geopy.distance
+import sqlite3
+from datetime import datetime
 GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
 geolocator = GoogleV3(api_key=GM_API_KEY)
 
@@ -96,3 +98,29 @@ def calcDistance(cityLat, cityLong, jobLat, jobLong):
     city = (cityLat, cityLong)
     job = (jobLat, jobLong)
     return (geopy.distance.geodesic(city, job).miles)
+
+def updateSQL(dictionary, cursor, company):
+    command = """
+    INSERT INTO jobs (
+        company, title, id, age, pay, address, cityState, longitude, latitude, url, postdate, lastverify, count
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """
+
+    values = (
+        company,
+        dictionary.get("title"),
+        dictionary.get("id"),
+        dictionary.get("age"),
+        dictionary.get("pay"),
+        dictionary.get("address"),
+        dictionary.get("cityState"),
+        dictionary.get("longitude"),
+        dictionary.get("latitude"),
+        f'<a href="{dictionary["url"]}" target="_blank"> Apply</a>',
+        dictionary.get("postdate"),
+        datetime.today().strftime("%Y.%m.%d"),
+        0
+    )
+
+    cursor.execute(command, values)
+

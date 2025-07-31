@@ -25,6 +25,9 @@ city = arguments["cityState"][0] if cityFound else ""
 cursor.execute('SELECT cityState FROM cityStates')
 validCities = {row[0] for row in cursor.fetchall()}
 
+cursor.execute('SELECT cityState, job_count FROM cityStates WHERE job_count > 4')
+cityStateCounts = cursor.fetchall()
+
 citySelected = cityFound and not isBadCity(city) and city in validCities
 
 #check if user is on a phone
@@ -299,9 +302,8 @@ print('''
   <button onclick="useCurrentLocation()" title="Use Current Location"><i class="fas fa-location-crosshairs"></i></button>
   <datalist id="cities">
 ''')
-
-for i in cityState:
-    print(f"<option value='{i[0]}'>")
+for city, count in cityStateCounts:
+    print(f"<option value='{city} ({count})'></option>")
 print('</datalist>')
 print('</div>')
 

@@ -82,12 +82,14 @@ def parse(URL, cursor):
                 latitude, longitude = getLatLong(cityState)
                 command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
                 cursor.execute(command1)
+            else:
+                cursor.execute("""
+                UPDATE cityStates
+                SET job_count = job_count + 1
+                WHERE cityState = ?
+                """, (cityState,))
 
     return results
-
-def updateSQL(dictionary, cursor):
-    command1 = "INSERT INTO jobs (company, title, id, age, pay, address, cityState, longitude, latitude, url) VALUES ('Chipotle', '" + str(dictionary["title"]) + "', '" + str(dictionary["id"]) + "', '" + str(dictionary["age"]) + "', '" + str(dictionary["pay"]) + "', '" + str(dictionary["address"]) + "', '" + str(dictionary["cityState"]) + "', '" + str(dictionary["longitude"]) + "', '" + str(dictionary["latitude"]) + "', '<a href=\"" + str(dictionary["url"]) + "\" target=\"_blank\"> Apply</a>')"
-    cursor.execute(command1)
 
 
 
@@ -126,10 +128,10 @@ def parseList(URL) :
             results.update({"address": address})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
-            #results.update({"cityState": cityState})
             results.update({"url": iturl})
+            results.update({"postdate": datetime.today().strftime("%Y.%m.%d")})
             resultList.append(results)
-            updateSQL(results, cursor)
+            updateSQL(results, cursor, 'Chipotle')
             print("  ", i, " Job ", id, " added", iturl)
         else:
             print("  ", i, "Job ", id, " already exists", iturl)
@@ -145,16 +147,15 @@ if len(sys.argv) < 3 or len(sys.argv) > 3:
     exit(1)
 
 print(80 * "-")
-print("Running at: ", datetime.datetime.now())
+print("Running at: ", datetime.now())
 print("command: ", sys.argv[0], sys.argv[1], sys.argv[2])
 
 connection = sqlite3.connect("/var/lib/db/jobs.db")
 cursor = connection.cursor()
-
-command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)"
+command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age INTEGER, pay FLOAT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT, postdate TEXT, lastverify TEXT, count INTEGER)"
 cursor.execute(command1)
 
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
+command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT, job_count INTEGER)"
 cursor.execute(command2)
 
 master = []

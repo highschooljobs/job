@@ -43,20 +43,22 @@ def parseList(URL):
         time.sleep(1)
         id = i['data']['id']
         if not existsId("ChickFilA:" + id, cursor):
-            title = i['data']['name'] 
-            if title == "Front of House Team Member":
-                age = 16
-            else:
-                continue
-            applyurl = i['data']['applicationUrl']
-            cityState = i["data"]["c_jobCity"] + ", " + i['data']["c_jobState"]
             try:
-                pay = i['data']['c_payRange']
-            except KeyError:
-                pay = "Competitive"
-            address = i['data']['c_jobAddressLine1']
-            latitude, longitude = getLatLong(address + ", " + cityState)
-
+                title = i['data']['name'] 
+                if title == "Front of House Team Member":
+                    age = 16
+                else:
+                    continue
+                applyurl = i['data']['applicationUrl']
+                cityState = i["data"]["c_jobCity"] + ", " + i['data']["c_jobState"]
+                try:
+                    pay = i['data']['c_payRange']
+                except KeyError:
+                    pay = "Competitive"
+                address = i['data']['c_jobAddressLine1']
+                latitude, longitude = getLatLong(address + ", " + cityState)
+            except:
+                continue
             results = {}
 
 
