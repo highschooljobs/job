@@ -6,7 +6,7 @@ GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
 geolocator = GoogleV3(api_key=GM_API_KEY)
 
 
-
+dbpath = "/var/log/db/jobs.db"
 def get_state_abbreviation(state_name):
     states = {
         "alabama": "AL",
@@ -124,3 +124,17 @@ def updateSQL(dictionary, cursor, company):
 
     cursor.execute(command, values)
 
+def isValidAge(age):
+    return age < 18 and age > 0
+
+
+def openInitDb():
+    connection = sqlite3.connect(dbpath)
+    cursor = connection.cursor()
+
+    command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)"
+    cursor.execute(command1)
+
+    command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
+    cursor.execute(command2)
+    return connection

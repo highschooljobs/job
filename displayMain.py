@@ -17,16 +17,23 @@ def isBadCity(city):
 conn = sqlite3.connect(jobpath)
 cursor = conn.cursor()
 
+cursor.execute('''
+    SELECT cityState, job_count, latitude, longitude
+    FROM cityStates
+    WHERE job_count > 4
+    ORDER BY cityState
+''')
+cityStateData = cursor.fetchall()
+validCities = {row[0] for row in cityStateData}  # set of city names
+cityStateCounts = [(row[0], row[1]) for row in cityStateData]  # list of (cityState, job_count)
+cityState = [(row[0], row[2], row[3]) for row in cityStateData]  # list of (cityState, lat, long)
+cityState.sort(key=lambda x: x[0])
+
 query_string = os.environ.get("QUERY_STRING", "")
 arguments = parse_qs(query_string)
 
 cityFound = "cityState" in arguments
 city = arguments["cityState"][0] if cityFound else ""
-cursor.execute('SELECT cityState FROM cityStates')
-validCities = {row[0] for row in cursor.fetchall()}
-
-cursor.execute('SELECT cityState, job_count FROM cityStates WHERE job_count > 4')
-cityStateCounts = cursor.fetchall()
 
 citySelected = cityFound and not isBadCity(city) and city in validCities
 
@@ -57,10 +64,6 @@ if not os.path.exists(jobpath):
     exit()
 
 
-cursor.execute('SELECT cityState, latitude, longitude FROM cityStates')
-cityState = cursor.fetchall()
-cityState.sort(key=lambda x: x[0])
-cityState.sort()
 
 lat = long = None
 if citySelected:
@@ -72,32 +75,23 @@ if citySelected:
         latLong = cursor.fetchall()
         lat = float(latLong[0][0])
         long = float(latLong[0][1])
-
-    minLong = long - 0.1
-    maxLong = long + 0.1
-    minLat = lat - 0.1
-    maxLat = lat + 0.1
-
-
-# Execute SELECT statement
-inBox = '" OR (latitude > ' + str(minLat) + ' AND latitude < ' + str(maxLat) + ' AND longitude > ' + str(minLong) + ' AND longitude < ' + str(maxLong) + '))' if citySelected and lat is not None else ""
-addcity = ' AND (cityState = "' + city + inBox if citySelected and lat is not None else ""
-if not citySelected:
+else:
     # Use IP-based location
     lat = float(usr_lat)
     long = float(usr_long)
+    
+minLong = long - 0.1
+maxLong = long + 0.1
+minLat = lat - 0.1
+maxLat = lat + 0.1
 
-    minLong = long - 0.1
-    maxLong = long + 0.1
-    minLat = lat - 0.1
-    maxLat = lat + 0.1
-
-    # Add bounding box query
-    addcity = f' AND (latitude > {minLat} AND latitude < {maxLat} AND longitude > {minLong} AND longitude < {maxLong})'
+citymatch = f'cityState = "{city}" OR' if citySelected else ""
+inbox     = f' (latitude > {minLat} AND latitude < {maxLat} AND longitude > {minLong} AND longitude < {maxLong})'
+geocond   = ' AND ( ' + citymatch + inbox + ')'
 
 # Build SQL query regardless of method used
 if citySelected or dbg or (lat is not None and long is not None):
-    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + addcity
+    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + geocond
     cursor.execute(select)
     jobsRaw = cursor.fetchall()
 else:
@@ -320,7 +314,7 @@ print('''
   ];
 
   const params = new URLSearchParams(window.location.search);
-  const city = params.get("cityState");
+  let city = params.get("cityState");
 
   // If cityState is invalid, clean the URL
   if (city && !knownCities.includes(city)) {
@@ -337,10 +331,11 @@ print('''
 print('''
 <script>
 function goToCity() {
-  const city = document.getElementById("citySearch").value;
+  let city = document.getElementById("citySearch").value;
   const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
   const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
   if (validCities.includes(city)) {
+      city = city.split(" (")[0].trim();
     window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
   } else {
     alert("Please select a valid city from the list.");

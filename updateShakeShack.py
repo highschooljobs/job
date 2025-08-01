@@ -85,16 +85,17 @@ def parse(URL, cursor):
             cityState = city + ", " + state
             results["cityState"] = cityState
 
-            if not existsCityState(cityState, cursor):
-                latitude, longitude = getLatLong(cityState)
-                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
-                cursor.execute(command1)
-            else:
-                cursor.execute("""
-                UPDATE cityStates
-                SET job_count = job_count + 1
-                WHERE cityState = ?
-                """, (cityState,))
+            if isValidAge(age):
+                if not existsCityState(cityState, cursor):
+                    latitude, longitude = getLatLong(cityState)
+                    command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
+                    cursor.execute(command1)
+                else:
+                    cursor.execute("""
+                    UPDATE cityStates
+                    SET job_count = job_count + 1
+                    WHERE cityState = ?
+                    """, (cityState,))
     return results
 
 def updateSQL(dictionary, cursor):
