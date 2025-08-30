@@ -99,24 +99,13 @@ def parseList(URL):
         longitude = i["locations"][0]["lng"]
         address = i["locations"][0]["street_address"]  
         
-        if isValidAge(age):
-            if not existsCityState(cityState, cursor):
-                print(id)
-                if len(cityState) < 4:
-                    print("job " + str(id) + " skipped because has invalid cityState " + cityState)
-                    continue
-                citylat, citylong = getLatLong(cityState)
-                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(citylat) + "', '" + str(citylong) + "')"
-                cursor.execute(command1)
-            else:
-                cursor.execute("""
-                UPDATE cityStates 
-                SET job_count = job_count + 1
-                WHERE cityState = ?
-                """, (cityState,))
-
         if not existsId("Panera:" + id, cursor):
-            results = parse(iturl)
+            results = parse(iturl)  # This gives you age and pay
+            age = results["age"]
+
+            if not isValidAge(age):
+                continue  # skip this job if age is invalid
+
             results.update({"id": "Panera:" + id})
             results.update({"address": address})
             results.update({"title": title})
@@ -128,6 +117,21 @@ def parseList(URL):
             resultList.append(results)
             updateSQL(results, cursor, 'Panera')
             print("Job ", id, " added", iturl)
+
+            # Handle cityState after age validation
+            if not existsCityState(cityState, cursor):
+                if len(cityState) < 4:
+                    print("job " + str(id) + " skipped because has invalid cityState " + cityState)
+                    continue
+                citylat, citylong = getLatLong(cityState)
+                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES (?, ?, ?)"
+                cursor.execute(command1, (cityState, citylat, citylong))
+            else:
+                cursor.execute("""
+                UPDATE cityStates 
+                SET job_count = job_count + 1
+                WHERE cityState = ?
+                """, (cityState,))
         else:
             print("Job ", id, " already exists", iturl)
 

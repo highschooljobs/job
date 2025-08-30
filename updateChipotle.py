@@ -130,7 +130,7 @@ def parseList(URL) :
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
             results.update({"url": iturl})
-            results.update({"postdate": datetime.today().strftime("%Y.%m.%d")})
+            results.update({"postdate": datetime.today().strftime("%Y-%m-%d")})
             resultList.append(results)
             updateSQL(results, cursor, 'Chipotle')
             print("  ", i, " Job ", id, " added", iturl)
@@ -151,13 +151,8 @@ print(80 * "-")
 print("Running at: ", datetime.now())
 print("command: ", sys.argv[0], sys.argv[1], sys.argv[2])
 
-connection = sqlite3.connect("/var/lib/db/jobs.db")
+connection = openInitDb()
 cursor = connection.cursor()
-command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age INTEGER, pay FLOAT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT, postdate TEXT, lastverify TEXT, count INTEGER)"
-cursor.execute(command1)
-
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT, job_count INTEGER)"
-cursor.execute(command2)
 
 master = []
 

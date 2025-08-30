@@ -6,7 +6,7 @@ GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
 geolocator = GoogleV3(api_key=GM_API_KEY)
 
 
-dbpath = "/var/log/db/jobs.db"
+dbpath = "/var/lib/db/jobs.db"
 def get_state_abbreviation(state_name):
     states = {
         "alabama": "AL",
@@ -118,7 +118,7 @@ def updateSQL(dictionary, cursor, company):
         dictionary.get("latitude"),
         f'<a href="{dictionary["url"]}" target="_blank"> Apply</a>',
         dictionary.get("postdate"),
-        datetime.today().strftime("%Y.%m.%d"),
+        datetime.today().strftime("%Y-%m-%d"),
         0
     )
 
@@ -138,3 +138,9 @@ def openInitDb():
     command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
     cursor.execute(command2)
     return connection
+def isTooSenior(title):
+    seniors = ['Director', 'Manager']
+    for i in seniors:
+        if i in title:
+            return True
+    return False

@@ -29,13 +29,18 @@ cityStateCounts = [(row[0], row[1]) for row in cityStateData]  # list of (citySt
 cityState = [(row[0], row[2], row[3]) for row in cityStateData]  # list of (cityState, lat, long)
 cityState.sort(key=lambda x: x[0])
 
+#find current amount of jobs
+cursor.execute('SELECT COUNT(1) FROM jobs WHERE AGE < 18 AND AGE > 0')
+currentJobs = cursor.fetchone()[0]
+
+
 query_string = os.environ.get("QUERY_STRING", "")
 arguments = parse_qs(query_string)
 
 cityFound = "cityState" in arguments
 city = arguments["cityState"][0] if cityFound else ""
 
-citySelected = cityFound and not isBadCity(city) and city in validCities
+citySelected = cityFound and not isBadCity(city) and (city in validCities or city == "current")
 
 #check if user is on a phone
 phone = "Phone" in os.environ["HTTP_USER_AGENT"] or "Mobile" in os.environ["HTTP_USER_AGENT"]
@@ -265,7 +270,10 @@ print("  <body>")
 print('''
 <div class="header-background">
   <h1>mangohub</h1>
-  <p>Find jobs for highschool teens</p>
+  <p>Find Jobs for Highschool Teens</p>
+  <p>Current Job Count: ''')
+print(f"{currentJobs:,d}") 
+print('''</p>
 </div>
 ''')
 print(navigator)
