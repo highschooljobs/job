@@ -81,14 +81,15 @@ def parseList(URL):
             if isValidAge(age):
                 if not existsCityState(cityState, cursor):
                     latitude, longitude = getLatLong(cityState)
-                    command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
+                    command1 = "INSERT INTO %s (cityState, latitude, longitude) VALUES (?, ?, ?)" % (cityTable)
                     cursor.execute(command1)
                 else:
-                    cursor.execute("""
-                    UPDATE cityStates
+                    command2 = """
+                    UPDATE %s
                     SET job_count = job_count + 1
                     WHERE cityState = ?
-                    """, (cityState,))
+                    """ % cityTable
+                    cursor.execute(command2, (cityState,))
 
         else:
             print("Job already added")

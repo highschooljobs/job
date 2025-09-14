@@ -77,19 +77,6 @@ def parse(URL, cursor):
             state = get_state_abbreviation(state)
             cityState = city + ", " + state
             results["cityState"] = cityState
-            
-            if isValidAge(age):
-                if not existsCityState(cityState, cursor):
-                    latitude, longitude = getLatLong(cityState)
-                    command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
-                    cursor.execute(command1)
-                else:
-                    cursor.execute("""
-                    UPDATE cityStates
-                    SET job_count = job_count + 1
-                    WHERE cityState = ?
-                    """, (cityState,))
-
     return results
 
 
@@ -133,7 +120,6 @@ def parseList(URL) :
             results.update({"postdate": datetime.today().strftime("%Y-%m-%d")})
             resultList.append(results)
             updateSQL(results, cursor, 'Chipotle')
-            print("  ", i, " Job ", id, " added", iturl)
         else:
             print("  ", i, "Job ", id, " already exists", iturl)
 

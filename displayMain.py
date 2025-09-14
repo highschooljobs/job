@@ -20,7 +20,7 @@ cursor = conn.cursor()
 cursor.execute('''
     SELECT cityState, job_count, latitude, longitude
     FROM cityStates
-    WHERE job_count > 4
+    WHERE job_count > 1
     ORDER BY cityState
 ''')
 cityStateData = cursor.fetchall()
@@ -96,7 +96,7 @@ geocond   = ' AND ( ' + citymatch + inbox + ')'
 
 # Build SQL query regardless of method used
 if citySelected or dbg or (lat is not None and long is not None):
-    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age = 16' + geocond
+    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age > 0 AND age < 18' + geocond
     cursor.execute(select)
     jobsRaw = cursor.fetchall()
 else:
@@ -290,9 +290,11 @@ print('''
   <label for="citySearch">Search City: </label>
   <input
     list="cities"
-    id="citySearch"
-    oninput="handleInput()"
-    placeholder="Start typing..."
+  id="citySearch"
+  oninput="handleInput()"
+  placeholder="Start typing..."
+  onkeydown="handleKey(event)"
+  onfocus="this.select()"   
     ''')
 if citySelected:
     print(f'''
@@ -339,11 +341,18 @@ print('''
 print('''
 <script>
 function goToCity() {
-  let city = document.getElementById("citySearch").value;
+  let city = document.getElementById("citySearch").value.trim();
   const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
   const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+
+  if (city === "") {
+    // If input is empty, go back to main page
+    window.location.href = "https://mangohub.app/";
+    return;
+  }
+
   if (validCities.includes(city)) {
-      city = city.split(" (")[0].trim();
+    city = city.split(" (")[0].trim();
     window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
   } else {
     alert("Please select a valid city from the list.");
@@ -389,7 +398,7 @@ if jobs or dbg:
     print("    <table>")
     print("      <tr>")
     if dbg:
-        print("        <th>Distance (mi)</th>")
+        print("        <th>Distance</th>")
         print("        <th>Company</th>")
         print("        <th>Title</th>")
         print("        <th>Id</th>")
@@ -404,7 +413,7 @@ if jobs or dbg:
         if phone:
             print("<th> Jobs </th>")
         else:
-            print("        <th>Distance (mi)</th>")
+            print("        <th>Distance</th>")
             print("        <th>Company</th>")
             print("        <th>Title</th>")
             print("        <th>Age</th>")
@@ -417,9 +426,13 @@ if jobs or dbg:
     if dbg:
         for i in jobs:
             print("      <tr>")
-            for x in i:
-                if x == i[0]:
-                    print("<td style='text-align: center;'>" + str(x) + "</td>")
+            for idx, x in enumerate(i):
+                if idx == 0:
+                    print("<td style='text-align: center;'>" + str(x) + " mi </td>")
+                elif idx == 5 and x == 0.0:
+                    print("<td style='text-align: center;'> - </td>")
+                elif idx == 5 and x != 0.0:
+                    print("<td style='text-align: center;'>$" + str(x) + "</td>")
                 else:
                     print("<td>" + str(x) + "</td>")
             print("      </tr>")
@@ -430,7 +443,7 @@ if jobs or dbg:
                 print("<td>")
                 print(job[1] + ", " +  str(job[2]) + "<br> ")
                 print(job[6] + ", " + str(job[7]) + "<br>")
-                print(job[0] + " mi, "  + str(job[4]) + "yo, " + str(job[5])  +  " " + job[10])
+                print(job[0] + " mi, "  + str(job[4]) + "yo, $" + str(job[5])  +  " " + job[10])
                 print("</td>")
                 print("</tr>")
         else:
@@ -439,7 +452,12 @@ if jobs or dbg:
                 for idx, value in enumerate(i):
                     if columns[idx] not in exclude:
                         if value == i[0]:
-                            print("<td style='text-align: center;'>" + str(value) + "</td>")
+                            print("<td style='text-align: center;'>" + str(value) + " mi</td>")
+                        elif idx == 5 and value == 0.0:
+                            print("<td style='text-align: center;'> - </td>")
+                        elif idx == 5 and not value == 0.0:
+                            formatted = f"{value:.2f}"
+                            print("<td style='text-align: center;'>$" + str(formatted) + " </td>")
                         else:
                             print("<td>" + str(value) + "</td>")
                 print("      </tr>")

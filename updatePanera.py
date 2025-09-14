@@ -74,7 +74,7 @@ def parse(URL):
                 results["pay"] = pay_str
                 break  # stop after first match
             else:
-                results["pay"] = "Competitive"
+                results["pay"] = 0
                 break
 
     return results
@@ -116,22 +116,6 @@ def parseList(URL):
             results.update({"postdate": datetime.today().strftime("%Y.%m.%d")})
             resultList.append(results)
             updateSQL(results, cursor, 'Panera')
-            print("Job ", id, " added", iturl)
-
-            # Handle cityState after age validation
-            if not existsCityState(cityState, cursor):
-                if len(cityState) < 4:
-                    print("job " + str(id) + " skipped because has invalid cityState " + cityState)
-                    continue
-                citylat, citylong = getLatLong(cityState)
-                command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES (?, ?, ?)"
-                cursor.execute(command1, (cityState, citylat, citylong))
-            else:
-                cursor.execute("""
-                UPDATE cityStates 
-                SET job_count = job_count + 1
-                WHERE cityState = ?
-                """, (cityState,))
         else:
             print("Job ", id, " already exists", iturl)
 

@@ -56,7 +56,7 @@ def parseList(URL):
             elif len(jobdata['items'][0]['requisitionFlexFields']) == 2:
                 pay = jobdata['items'][0]['requisitionFlexFields'][1]['Value']
             else:
-                pay = "Competitive"
+                pay = 0
             results = {}
     
             results.update({"company": banner})
@@ -74,19 +74,6 @@ def parseList(URL):
             print("results: ",  results)
             print()
             updateSQL(results, cursor, banner)
-            print( "Job ", id, " added", applyurl)
-
-            if isValidAge(age): 
-                if not existsCityState(cityState, cursor):
-                    latitude, longitude = getLatLong(cityState)
-                    command1 = "INSERT INTO cityState (cityState, latitude, longitude) VALUES ('" + str(cityState) + "', '" + str(latitude) + "', '" + str(longitude) +  "')"
-                    cursor.execute(command1)
-                else:
-                    cursor.execute("""
-                    UPDATE cityStates
-                    SET job_count = job_count + 1
-                    WHERE cityState = ?
-                    """, (cityState,))
         else:
             print("Job already added")
             break

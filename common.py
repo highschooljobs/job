@@ -7,6 +7,8 @@ geolocator = GoogleV3(api_key=GM_API_KEY)
 
 
 dbpath = "/var/lib/db/jobs.db"
+cityTable = "cityStates"
+jobTable = "jobs"
 def get_state_abbreviation(state_name):
     states = {
         "alabama": "AL",
@@ -75,7 +77,7 @@ def parseTerm(s, keyStart, keyEnd, lastIndex):
     return term
 
 def existsCityState(cityState, cursor):
-    command1 = 'SELECT EXISTS(SELECT 1 FROM cityState WHERE cityState="' + str(cityState) + '")'
+    command1 = 'SELECT EXISTS(SELECT 1 FROM %s WHERE cityState=" %s ")' % (cityTable, cityState)
     cursor.execute(command1)
     result = cursor.fetchone()
 
@@ -124,6 +126,26 @@ def updateSQL(dictionary, cursor, company):
 
     cursor.execute(command, values)
 
+    cityState = dictionary.get("cityState")
+    id = dictionary.get("id")
+    print("Job ", id, " added", dictionary.get('url'))
+    if isValidAge(dictionary.get('age')):
+        if not existsCityState(cityState, cursor):
+            if len(cityState) < 4:
+                print("job " + str(id) + " skipped because has invalid cityState " + cityState)
+                return
+            citylat, citylong = getLatLong(cityState)
+            command1 = f"INSERT INTO {cityTable} (cityState, latitude, longitude) VALUES (?, ?, ?)"
+            cursor.execute(command1, (cityState, citylat, citylong))
+        else:
+            command2 = f"""
+            UPDATE {cityTable}
+            SET job_count = job_count + 1
+            WHERE cityState = ?
+            """
+            cursor.execute(command2, (cityState,))
+
+
 def isValidAge(age):
     return age < 18 and age > 0
 
@@ -132,14 +154,14 @@ def openInitDb():
     connection = sqlite3.connect(dbpath)
     cursor = connection.cursor()
 
-    command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)"
+    command1 = "CREATE TABLE IF NOT EXISTS %s (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)" % (jobTable)
     cursor.execute(command1)
 
-    command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
+    command2 = "CREATE TABLE IF NOT EXISTS %s (cityState TEXT, latitude FLOAT, longitude FLOAT)" % (cityTable)
     cursor.execute(command2)
     return connection
 def isTooSenior(title):
-    seniors = ['Director', 'Manager']
+    seniors = ['Director', 'Manager', 'in Charge', 'Specialty']
     for i in seniors:
         if i in title:
             return True
