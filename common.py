@@ -91,7 +91,6 @@ def existsId(jobId, cursor):
     return result[0]
 
 def getLatLong(address):
-    print(address)
     location = geolocator.geocode(address)
     
     return (location.latitude, location.longitude)

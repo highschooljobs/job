@@ -50,6 +50,8 @@ def parseList(URL):
                 continue
             latitude = jobdata['items'][0]['workLocation'][0]['Latitude']
             longitude =  jobdata['items'][0]['workLocation'][0]['Longitude']
+            if latitude is None or longitude is None:
+                continue
             if len(jobdata['items'][0]['requisitionFlexFields']) == 3:
                 pay =  str(jobdata['items'][0]['requisitionFlexFields'][1]['Value'])
                 pay = pay.replace('$', '')

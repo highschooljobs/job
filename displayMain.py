@@ -285,16 +285,18 @@ if dbg:
 
 
 # Search bar with Enter key support
+# Replace the existing datalist section with this:
+
 print('''
 <div style="text-align: center; margin-top: 20px;">
   <label for="citySearch">Search City: </label>
   <input
     list="cities"
-  id="citySearch"
-  oninput="handleInput()"
-  placeholder="Start typing..."
-  onkeydown="handleKey(event)"
-  onfocus="this.select()"   
+    id="citySearch"
+    oninput="handleInput()"
+    placeholder="Start typing..."
+    onkeydown="handleKey(event)"
+    onfocus="this.select()"   
     ''')
 if citySelected:
     print(f'''
@@ -305,91 +307,134 @@ print('''
   />
   <button onclick="useCurrentLocation()" title="Use Current Location"><i class="fas fa-location-crosshairs"></i></button>
   <datalist id="cities">
+    <!-- Options will be populated by JavaScript -->
+  </datalist>
+</div>
 ''')
-for city, count in cityStateCounts:
-    print(f"<option value='{city} ({count})'></option>")
-print('</datalist>')
-print('</div>')
 
+# Replace the existing JavaScript section with this updated version:
 
-#java script
 print('''
 <script>
   // Dynamically injected valid city list from Python
-  const knownCities = [
+  const cityData = [
 ''')
-for i in cityState:
-    print(f'    "{i[0]}",')
+for city, count in cityStateCounts:
+    print(f'    {{name: "{city}", display: "{city} ({count})"}},')
 print('''
   ];
 
   const params = new URLSearchParams(window.location.search);
   let city = params.get("cityState");
+  const validCityNames = cityData.map(c => c.name);
 
   // If cityState is invalid, clean the URL
-  if (city && !knownCities.includes(city)) {
+  if (city && !validCityNames.includes(city)) {
     params.delete("cityState");
     params.delete("lat");
     params.delete("long");
     const newUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
     window.history.replaceState({}, "", newUrl);
   }
+
+  function updateDropdown(inputValue) {
+    const datalist = document.getElementById("cities");
+    datalist.innerHTML = ""; // Clear existing options
+    
+    const searchTerm = inputValue.trim().toLowerCase();
+    
+    if (searchTerm === "") {
+      // If input is empty, show all cities
+      cityData.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city.display;
+        datalist.appendChild(option);
+      });
+    } else {
+      // Filter cities that start with the input value (case insensitive)
+      const filtered = cityData.filter(city => 
+        city.name.toLowerCase().startsWith(searchTerm)
+      );
+      
+      filtered.forEach(city => {
+        const option = document.createElement("option");
+        option.value = city.display;
+        datalist.appendChild(option);
+      });
+      
+      // Debug: log if no results found
+      if (filtered.length === 0) {
+        console.log("No cities found starting with:", inputValue);
+        console.log("Available cities:", cityData.map(c => c.name));
+      }
+    }
+  }
+
+  function goToCity() {
+    let city = document.getElementById("citySearch").value.trim();
+    const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+
+    if (city === "") {
+      // If input is empty, go back to main page
+      window.location.href = "https://mangohub.app/";
+      return;
+    }
+
+    // Extract city name from "CityName (count)" format if present
+    const cityName = city.includes(" (") ? city.split(" (")[0].trim() : city;
+    
+    // Check if the city name is valid
+    if (validCityNames.includes(cityName)) {
+      window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(cityName) + dbg;
+    } else {
+      alert("Please select a valid city from the list.");
+    }
+  }
+
+  function useCurrentLocation() {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        const lat = position.coords.latitude;
+        const long = position.coords.longitude;
+        const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
+        window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
+      }, function(error) {
+        alert("Geolocation failed: " + error.message);
+      });
+    } else {
+      alert("Geolocation is not supported by this browser.");
+    }
+  }
+
+  function handleKey(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      goToCity();
+    }
+  }
+
+  function handleInput() {
+    const inputValue = document.getElementById("citySearch").value;
+    
+    // Debug logging
+    console.log("Input value:", inputValue);
+    console.log("Searching for cities starting with:", inputValue.toLowerCase());
+    
+    updateDropdown(inputValue);
+    
+    // Auto-navigate if exact match is found
+    const exactMatch = cityData.find(city => city.display === inputValue);
+    if (exactMatch) {
+      goToCity();
+    }
+  }
+
+  // Initialize dropdown when page loads
+  document.addEventListener("DOMContentLoaded", function() {
+    updateDropdown("");
+  });
 </script>
 ''')
-
-# JavaScript
-print('''
-<script>
-function goToCity() {
-  let city = document.getElementById("citySearch").value.trim();
-  const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
-  const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-
-  if (city === "") {
-    // If input is empty, go back to main page
-    window.location.href = "https://mangohub.app/";
-    return;
-  }
-
-  if (validCities.includes(city)) {
-    city = city.split(" (")[0].trim();
-    window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(city) + dbg;
-  } else {
-    alert("Please select a valid city from the list.");
-  }
-}
-
-function useCurrentLocation() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(position) {
-      const lat = position.coords.latitude;
-      const long = position.coords.longitude;
-      const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-      window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
-    }, function(error) {
-      alert("Geolocation failed: " + error.message);
-    });
-  } else {
-    alert("Geolocation is not supported by this browser.");
-  }
-}
-
-function handleKey(event) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    goToCity();
-  }
-}
-function handleInput() {
-  const input = document.getElementById("citySearch").value;
-  const validCities = Array.from(document.querySelectorAll("#cities option")).map(opt => opt.value);
-  if (validCities.includes(input)) {
-    goToCity();
-  }
-}
-</script>
-''')
-
 # PRINT TABLE
 # JOBS TABLE
 if not jobs and not dbg:
