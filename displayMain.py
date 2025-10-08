@@ -7,115 +7,124 @@ import os
 from urllib.parse import parse_qs
 from common import *
 
-#this is the jobpath to the database
-jobpath = "/var/lib/db/jobs.db"
-
-# function to determine if cityState is valid or not
 def isBadCity(city):
     return any(char in city for char in ["'", '"', ";", "--", "<", ">", "\\"])
+
+def IP2LatLong(ip):
+    url =  "https://api.ipgeolocation.io/v2/ipgeo?apiKey=78e184f3697b437f933f83d4419f8712&ip=" + str(ip)
+    payload = {}
+    headers = {}
+
+    response = requests.request("GET", url, headers=headers, data=payload)
+    data = json.loads(response.text)
+
+    usr_lat = data['location']['latitude']
+    usr_long = data['location']['longitude']
+    return usr_lat, usr_long
+
+def findLatLong(cursor, citySelected, city, arguments, usr_lat, usr_long):
+    lat = long = None
+    if citySelected:
+        if city == "current" and "lat" in arguments and "long" in arguments:
+            lat = float(arguments["lat"][0])
+            long = float(arguments["long"][0])
+        else:
+            cursor.execute('SELECT latitude, longitude FROM cityStates WHERE cityState = ?', (city,))
+            latLong = cursor.fetchall()
+            lat = float(latLong[0][0])
+            long = float(latLong[0][1])
+    else:
+        # Use IP-based location
+        lat = float(usr_lat)
+        long = float(usr_long)
+    return lat, long
+
+def getJobsInBox(cursor, lat, long, deg, citySelected, city, dbg):
+    minLong = long - deg
+    maxLong = long + deg
+    minLat = lat - deg
+    maxLat = lat + deg
+
+    citymatch = f'cityState = "{city}" OR' if citySelected else ""
+    inbox     = f' (latitude > {minLat} AND latitude < {maxLat} AND longitude > {minLong} AND longitude < {maxLong})'
+    geocond   = ' AND ( ' + citymatch + inbox + ')'
+
+    # Build SQL query regardless of method used
+    if citySelected or dbg or (lat is not None and long is not None):
+        select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age > 0 AND age < 18' + geocond
+        cursor.execute(select)
+        jobsRaw = cursor.fetchall()
+    else:
+        jobsRaw = []
+    return jobsRaw
+
+def sortByDist(jobsRaw, lat, long):
+    jobs = []
+    for row in jobsRaw:
+        job = []
+        distance = calcDistance(lat, long, row[7], row[8]) if lat is not None and long is not None else 0
+        for x in row:
+            job.append(x)
+        job.insert(0, str(round(distance, 1)))
+        urlidx = len(job)-1
+        atag = job[urlidx]
+        url = atag[9:-28]
+        fulltag = '<a href="' + url + '"  ping="https://mangohub.app/ping?joburl=' + url + '" target="_blank"> Apply</a>'
+        job[urlidx] = fulltag
+        jobs.append(job)
+    jobs.sort(key=lambda x : float(x[0]))
+    return jobs
+
 # Connect to the database
-conn = sqlite3.connect(jobpath)
+if not os.path.exists(dbpath):
+    print("Error: jobs.db not found!")
+    exit()
+
+conn = sqlite3.connect(dbpath)
 cursor = conn.cursor()
 
 cursor.execute('''
     SELECT cityState, job_count, latitude, longitude
     FROM cityStates
-    WHERE job_count > 1
+    WHERE job_count > 2
     ORDER BY cityState
 ''')
 cityStateData = cursor.fetchall()
-validCities = {row[0] for row in cityStateData}  # set of city names
-cityStateCounts = [(row[0], row[1]) for row in cityStateData]  # list of (cityState, job_count)
+cities = [row[0] for row in cityStateData]  # list of city names
+nJobsInCity = {row[0]:row[1] for row in cityStateData}  # dictionary of (cityState, job_count)
 cityState = [(row[0], row[2], row[3]) for row in cityStateData]  # list of (cityState, lat, long)
-cityState.sort(key=lambda x: x[0])
+cities.sort()
 
-#find current amount of jobs
+#find current number of jobs
 cursor.execute('SELECT COUNT(1) FROM jobs WHERE AGE < 18 AND AGE > 0')
 currentJobs = cursor.fetchone()[0]
 
-
+# this is to find if user is looking for a cityState
 query_string = os.environ.get("QUERY_STRING", "")
 arguments = parse_qs(query_string)
+
+#set up debug mode
+dbg_mode = "dbg" in arguments
+dbg = dbg_mode and arguments["dbg"][0]  == '1'
 
 cityFound = "cityState" in arguments
 city = arguments["cityState"][0] if cityFound else ""
 
-citySelected = cityFound and not isBadCity(city) and (city in validCities or city == "current")
+# checks whether the user selected a valid city
+citySelected = cityFound and not isBadCity(city) and (city in cities or city == "current")
 
 #check if user is on a phone
 phone = "Phone" in os.environ["HTTP_USER_AGENT"] or "Mobile" in os.environ["HTTP_USER_AGENT"]
 
 #get the ip address of user
 ip = os.environ["REMOTE_ADDR"]
+usr_lat, usr_long = IP2LatLong(ip)
 
-#using ip address, get lat and long of user
-url =  "https://api.ipgeolocation.io/v2/ipgeo?apiKey=78e184f3697b437f933f83d4419f8712&ip=" + str(ip)
-payload = {}
-headers = {}
-
-response = requests.request("GET", url, headers=headers, data=payload)
-data = json.loads(response.text)
-
-usr_lat = data['location']['latitude']
-usr_long = data['location']['longitude']
-
-
-dbg_mode = "dbg" in arguments
-dbg = True if dbg_mode and arguments["dbg"][0]  == '1' else False
-
-
-if not os.path.exists(jobpath):
-    print("Error: jobs.db not found!")
-    exit()
-
-
-
-lat = long = None
-if citySelected:
-    if city == "current" and "lat" in arguments and "long" in arguments:
-        lat = float(arguments["lat"][0])
-        long = float(arguments["long"][0])
-    else:
-        cursor.execute('SELECT latitude, longitude FROM cityStates WHERE cityState = ?', (city,))
-        latLong = cursor.fetchall()
-        lat = float(latLong[0][0])
-        long = float(latLong[0][1])
-else:
-    # Use IP-based location
-    lat = float(usr_lat)
-    long = float(usr_long)
+lat, long = findLatLong(cursor, citySelected, city, arguments, usr_lat, usr_long)
     
-minLong = long - 0.1
-maxLong = long + 0.1
-minLat = lat - 0.1
-maxLat = lat + 0.1
+jobsRaw = getJobsInBox(cursor, lat, long, 0.1, citySelected, city, dbg)
 
-citymatch = f'cityState = "{city}" OR' if citySelected else ""
-inbox     = f' (latitude > {minLat} AND latitude < {maxLat} AND longitude > {minLong} AND longitude < {maxLong})'
-geocond   = ' AND ( ' + citymatch + inbox + ')'
-
-# Build SQL query regardless of method used
-if citySelected or dbg or (lat is not None and long is not None):
-    select = 'SELECT company, title, id, age, pay, address, cityState, latitude, longitude, url FROM jobs WHERE age > 0 AND age < 18' + geocond
-    cursor.execute(select)
-    jobsRaw = cursor.fetchall()
-else:
-    jobsRaw = []
-
-jobs = []
-for row in jobsRaw:
-    job = []
-    distance = calcDistance(lat, long, row[7], row[8]) if lat is not None and long is not None else 0
-    for x in row:
-        job.append(x)
-    job.insert(0, str(round(distance, 1)))
-    urlidx = len(job)-1
-    atag = job[urlidx]
-    url = atag[9:-28]
-    fulltag = '<a href="' + url + '"  ping="https://mangohub.app/ping?joburl=' + url + '" target="_blank"> Apply</a>'
-    job[urlidx] = fulltag
-    jobs.append(job)
-jobs.sort(key=lambda x : float(x[0]))
+jobs = sortByDist(jobsRaw, lat, long)
 
 columns = ["distance", "company", "title", "id", "age", "pay", "address", "cityState", "latitude", "longitude", "url"]
 exclude = ["id", "longitude", "latitude"]
@@ -319,7 +328,8 @@ print('''
   // Dynamically injected valid city list from Python
   const cityData = [
 ''')
-for city, count in cityStateCounts:
+for city in cities:
+    count = nJobsInCity[city]
     print(f'    {{name: "{city}", display: "{city} ({count})"}},')
 print('''
   ];
