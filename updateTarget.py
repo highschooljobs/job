@@ -94,6 +94,9 @@ for x in range(int(sys.argv[2])):
     results = parseList(url, payload)
     master += results
     y += 1
+    connection.commit()
+    print("committing...", flush=True)
+
 
 jobs = 0
 count16 = 0

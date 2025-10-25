@@ -34,7 +34,6 @@ def parseList(URL):
             except KeyError:
                 pay = "Competitive"
             address = i['data']['c_jobAddressLine1']
-            latitude, longitude = getLatLong(address + ", " + cityState)
 
             results = {}
 
@@ -45,8 +44,6 @@ def parseList(URL):
             results.update({"id": "ChickFilA:" + id})
             results.update({"address": address})
             results.update({"cityState": cityState})
-            results.update({"latitude": latitude})
-            results.update({"longitude": longitude})
             results.update({"url": applyurl})
             results.update({"postdate": datetime.today().strftime("%Y-%m-%d")})
             resultList.append(results)

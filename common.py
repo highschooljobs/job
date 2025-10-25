@@ -92,7 +92,8 @@ def existsId(jobId, cursor):
 
 def getLatLong(address):
     location = geolocator.geocode(address)
-    
+    if location is None:
+        raise ValueError("Bad address")
     return (location.latitude, location.longitude)
 
 def calcDistance(cityLat, cityLong, jobLat, jobLong):
@@ -107,6 +108,22 @@ def updateSQL(dictionary, cursor, company):
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
+    if "latitude" not in dictionary:
+        address = dictionary.get('address')    
+        cityState = dictionary.get("cityState")
+        print(address)
+        print(cityState)
+        cursor.execute("SELECT latitude, longitude FROM jobs WHERE address = ? AND cityState = ?",(address, cityState))
+        result = cursor.fetchone()
+        if result:
+            latitude, longitude = result
+            print("saved a token")
+        else:
+            latitude, longitude = getLatLong(address + cityState)
+            print("using a token")
+    else:
+        latitude = dictionary.get("latitude")
+        longitude = dictionary.get("longitude")
     values = (
         company,
         dictionary.get("title"),
@@ -115,8 +132,8 @@ def updateSQL(dictionary, cursor, company):
         dictionary.get("pay"),
         dictionary.get("address"),
         dictionary.get("cityState"),
-        dictionary.get("longitude"),
-        dictionary.get("latitude"),
+        longitude,
+        latitude,
         f'<a href="{dictionary["url"]}" target="_blank"> Apply</a>',
         dictionary.get("postdate"),
         datetime.today().strftime("%Y-%m-%d"),
@@ -133,7 +150,10 @@ def updateSQL(dictionary, cursor, company):
             if len(cityState) < 4:
                 print("job " + str(id) + " skipped because has invalid cityState " + cityState)
                 return
-            citylat, citylong = getLatLong(cityState)
+            try:
+                citylat, citylong = getLatLong(cityState)
+            except:
+                return
             command1 = f"INSERT INTO {cityTable} (cityState, latitude, longitude) VALUES (?, ?, ?)"
             cursor.execute(command1, (cityState, citylat, citylong))
         else:
@@ -160,7 +180,7 @@ def openInitDb():
     cursor.execute(command2)
     return connection
 def isTooSenior(title):
-    seniors = ['Director', 'Manager', 'in Charge', 'Specialty']
+    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat']
     for i in seniors:
         if i in title:
             return True

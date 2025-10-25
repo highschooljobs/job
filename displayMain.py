@@ -137,12 +137,12 @@ style = """
         <head>
         <link rel="icon" href="/mangohub.png" type="image/png">
        <title>MangoHub - Jobs for High School Teens</title>
-        <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them.">
+        <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them. Jobs for 16 year olds and 17 year olds in particular">
         <meta name="keywords" content="teen jobs, high school jobs, part-time jobs, local jobs, student employment">
         <meta name="author" content="MangoHub">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta property="og:title" content="MangoHub - Jobs for High School Teens">
-        <meta property="og:description" content="Find local jobs for high school students.">
+        <meta property="og:description" content="Find local jobs for high school students. Jobs for 16 year olds and 17 year olds. Jobs for teens.">
         <meta property="og:image" content="https://mangohub.app/mangohub.png">
         <meta property="og:url" content="https://mangohub.app/">
         <!-- Google tag (gtag.js) -->
@@ -280,6 +280,7 @@ print('''
 <div class="header-background">
   <h1>mangohub</h1>
   <p>Find Jobs for Highschool Teens</p>
+  <p> 16 years old and 17 years old</p>
   <p>Current Job Count: ''')
 print(f"{currentJobs:,d}") 
 print('''</p>

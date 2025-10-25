@@ -97,7 +97,11 @@ def parseList(URL, headers):
             results.update({"url": iturl})
             results.update({"postdate": postdate})
             resultList.append(results)
-            updateSQL(results, cursor, 'Wendys')
+            try:
+                updateSQL(results, cursor, 'Wendys')
+            except ValueError:
+                print("url: " + iturl)
+                continue
         else:
             print("Job ", id, " already exists", iturl)
 
@@ -125,6 +129,8 @@ for x in range(int(sys.argv[2])):
     url = "https://wendys-careers.com/wp-content/themes/wendys/get-jobs.php?ajax=1&keyword=&location=&category=crew&city=&state=&zip=&country=US&spage=" + str(y) + "&lang=&"
     results = parseList(url, headers)
     master += results
+    connection.commit()
+    print("committing...", flush=True)
     y += 1
 
 jobs = 0
