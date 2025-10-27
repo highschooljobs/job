@@ -25,7 +25,7 @@ def parseList(URL):
             if "Front of House Team Member" in title:
                 age = 16
             else:
-                continue
+                age = 0
             applyurl = i['data']['applicationUrl']
             cityState = i["data"]["c_jobCity"] + ", " + i['data']["c_jobState"]
             try:

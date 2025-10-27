@@ -278,7 +278,7 @@ print(style)
 print("  <body>")
 print('''
 <div class="header-background">
-  <h1>mangohub</h1>
+  <h1>mangohub.app</h1>
   <p>Find Jobs for Highschool Teens</p>
   <p> 16 years old and 17 years old</p>
   <p>Current Job Count: ''')

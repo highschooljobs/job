@@ -118,7 +118,7 @@ def updateSQL(dictionary, cursor, company):
         if result:
             latitude, longitude = result
             print("saved a token")
-        else:
+        elif age > 0 and age < 18:
             latitude, longitude = getLatLong(address + cityState)
             print("using a token")
     else:
@@ -180,7 +180,7 @@ def openInitDb():
     cursor.execute(command2)
     return connection
 def isTooSenior(title):
-    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat']
+    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat', 'Deli', 'Kitchen Team Member']
     for i in seniors:
         if i in title:
             return True

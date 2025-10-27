@@ -33,8 +33,7 @@ def parseList(URL, payload):
         pay = i['document']['basepaymin']
         id = "Target:" + i['document']['requisitionid']
         title = i['document']['title']
-        if isTooSenior(title):
-            break
+        age = 0 if isTooSenior(title) else 16
         iturl = 'https://corporate.target.com' + str(i['document']['url'])
         if pay == None:
             time.sleep(0.5)
@@ -47,7 +46,6 @@ def parseList(URL, payload):
                     end = line.find(" ", loco)
                     pay_str = line[loco:end].strip(" ")
                     pay = float(pay_str.replace("$", ""))
-        age = 16
 
         if not existsId(id, cursor):
             results = {}

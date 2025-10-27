@@ -32,16 +32,18 @@ def parseList(URL):
             
             jobdata = json.loads(r.text)
             title = i["Title"]
-            if isTooSenior(title):
-                break
             id =  i["Id"]
             applyurl = "https://eofd.fa.us6.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001/job/" + id
             print(applyurl)
             banner =  jobdata['items'][0]['requisitionFlexFields'][0]['Value']
-            if "18 years of age" not in jobdata['items'][0]['ExternalDescriptionStr']:
-                age = 16
-            else:
+            if "18 years of age" in jobdata['items'][0]['ExternalDescriptionStr']:
                 age = 18
+            elif isTooSenior(title):
+                age = 0
+            else:
+                age = 16
+
+
             location =  jobdata['items'][0]['PrimaryLocation']
             cityState = location.replace(", United States", "")
             if len(jobdata['items'][0]['workLocation']) > 0:
@@ -78,7 +80,6 @@ def parseList(URL):
             updateSQL(results, cursor, banner)
         else:
             print("Job already added")
-            break
     return resultList
 
 
