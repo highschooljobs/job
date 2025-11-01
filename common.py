@@ -111,16 +111,20 @@ def updateSQL(dictionary, cursor, company):
     if "latitude" not in dictionary:
         address = dictionary.get('address')    
         cityState = dictionary.get("cityState")
+        age = dictionary.get("age")
         print(address)
         print(cityState)
         cursor.execute("SELECT latitude, longitude FROM jobs WHERE address = ? AND cityState = ?",(address, cityState))
         result = cursor.fetchone()
-        if result:
+        if result and (result[0] != 0 and result[1] != 0):
             latitude, longitude = result
             print("saved a token")
         elif age > 0 and age < 18:
             latitude, longitude = getLatLong(address + cityState)
             print("using a token")
+        else:
+            latitude = 0
+            longitude = 0
     else:
         latitude = dictionary.get("latitude")
         longitude = dictionary.get("longitude")
@@ -180,7 +184,7 @@ def openInitDb():
     cursor.execute(command2)
     return connection
 def isTooSenior(title):
-    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat', 'Deli', 'Kitchen Team Member']
+    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat', 'Deli', 'Kitchen Team Member', 'Visual Merchandiser']
     for i in seniors:
         if i in title:
             return True
