@@ -2,6 +2,7 @@
 
 import requests
 import sqlite3
+import re
 import time, datetime
 import sys
 import json
@@ -9,12 +10,13 @@ import html
 from common import *
 
 def parse(URL):
-    keyAge = "years of age"
+    keyTitle = '"title" : '
+    keyAge = "years old"
     keyPay = "pay"
 
     results = {
         "age": 0,
-        "pay": ""
+        "pay": "",
     }
 
     try:
@@ -49,55 +51,35 @@ def parse(URL):
 
     # --- Look for pay ---
     for line in lines:
-        if keyPay.lower() in line.lower():
-            if "$" in line:
-                loco = line.find("$")
-                subline = line[loco:]
-
-                # Only keep valid characters: $, digits, -, space
-                valid_chars = "$0123456789-–. "
-                pay_str = ""
-                for ch in subline:
-                    if ch in valid_chars:
-                        pay_str += ch
-                    else:
-                        break  # stop at tag/quote/etc.
-
-                # Normalize and clean pay string
-                pay_str = (
-                    pay_str.replace("–", "-")  # normalize en-dash
-                            .replace(" -", "-")
-                            .replace("- ", "-")
-                            .strip()
-                )
-
-                results["pay"] = pay_str
-                break  # stop after first match
-            else:
-                results["pay"] = 0
-                break
-
+        m = re.search(r"\$\s*(\d+(?:\.\d{1,2})?)", line)
+        if m:
+            pay_value = m.group(1)
+            break  # stop at first dollar amount
+        else:
+            results["pay"] = 0
+            break
     return results
 
 
 
-def parseList(URL):
+def parseList(URL, payload, header):
     print("parseList: ", URL)
     resultList = []
-    r = requests.get(url=URL)
+    r = requests.post(url=URL, headers = header, data = json.dumps(payload))
     if r.status_code != 200:
         print("ERROR: HTTP Response code  " + r.status_code)
-    joblist = json.loads(r.text)
+    data = r.json()
+    jobs = data["eagerLoadRefineSearch"]["data"]["jobs"]
 
-    for i in joblist['entries']:
-        id = i["id"]
+    for i in jobs:
+        title = i["title"]
+        id = i["reqId"]
         id = str(id)
-        iturl = i['apply_url']
-        title = i["categories"][0]["name"]
-        cityState = i["locations"][0]["canonical_name"]
-        latitude = i["locations"][0]["lat"]
-        longitude = i["locations"][0]["lng"]
-        address = i["locations"][0]["street_address"]  
+        iturl = i['applyUrl']
+        cityState = i["cityState"]
+        latitude = i["latitude"]
+        longitude = i["longitude"]
+        address = i["address"]  
         
         if not existsId("Panera:" + id, cursor):
             results = parse(iturl)  # This gives you age and pay
@@ -106,9 +88,9 @@ def parseList(URL):
             if not isValidAge(age):
                 continue  # skip this job if age is invalid
 
+            results.update({"title": title})
             results.update({"id": "Panera:" + id})
             results.update({"address": address})
-            results.update({"title": title})
             results.update({"latitude": latitude})
             results.update({"longitude": longitude})
             results.update({"cityState": cityState})
@@ -141,9 +123,47 @@ master = []
 
 y = int(sys.argv[1])
 for x in range(int(sys.argv[2])):
-    link = "https://app.careerarc.com/api/job_maps/150/job_postings?zoom=4&q=&&page=" + str(y) + "&per_page=25&bounds%5Bsouth%5D=6.0253846386907846&bounds%5Bwest%5D=-114.5425058528781&bounds%5Bnorth%5D=60.443442512139285&bounds%5Beast%5D=-78.5073496028781"
+    payload = {
+    "lang": "en_global",
+    "deviceType": "desktop",
+    "country": "global",
+    "pageName": "search-results",
+    "ddoKey": "eagerLoadRefineSearch",
+    "sortBy": "Most recent",
+    "subsearch": "",
+    "from": 0,
+    "jobs": True,
+    "counts": True,
+    "all_fields": ["category", "state", "city", "timeType", "phLocSlider"],
+    "size": 10,
+    "clearAll": False,
+    "jdsource": "facets",
+    "isSliderEnable": True,
+    "pageId": "page" + str(y),
+    "siteType": "external",
+    "keywords": "",
+    "global": True,
+    "selected_fields": {"category": ["Restaurant Team Members"]},
+    "sort": {"order": "desc", "field": "postedDate"},
+    "locationData": {
+        "sliderRadius": 15,
+        "aboveMaxRadius": True,
+        "LocationUnit": "miles"
+        },
+    "s": "1"
+    }
 
-    results = parseList(link)
+    headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/plain, */*",
+    "Origin": "https://careers.panerabread.com",
+    "Referer": "https://careers.panerabread.com/global/en/search-results",
+    "User-Agent": "Mozilla/5.0"
+    }
+
+    link = url = "https://careers.panerabread.com/widgets"
+
+    results = parseList(link, payload, headers)
     master += results
     y += 1
 
