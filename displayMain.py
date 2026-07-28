@@ -7,6 +7,11 @@ import os
 from urllib.parse import parse_qs
 from common import *
 
+TEMPLATE_DIR = os.path.join(os.path.dirname(__file__), "templates")
+def load_template(filename):
+    with open(os.path.join(TEMPLATE_DIR, filename), "r") as f:
+        return f.read()
+
 def isBadCity(city):
     return any(char in city for char in ["'", '"', ";", "--", "<", ">", "\\"])
 
@@ -75,6 +80,17 @@ def sortByDist(jobsRaw, lat, long):
     jobs.sort(key=lambda x : float(x[0]))
     return jobs
 
+def format_pay(value):
+    s = str(value).replace("$", "").strip()
+    if s in ("0.0", "0", ""):
+        return 0  # signal "no pay listed"
+    if "-" in s:
+        return s
+    try:
+        return f"{float(s):.2f}"
+    except ValueError:
+        return s
+
 # Connect to the database
 if not os.path.exists(dbpath):
     print("Error: jobs.db not found!")
@@ -133,146 +149,9 @@ conn.close()
 
 
 # change the style if your on mobile view vs computer
-style = """
-        <head>
-        <link rel="icon" href="/mangohub.png" type="image/png">
-       <title>MangoHub - Jobs for High School Teens</title>
-        <meta name="description" content="Find local jobs for high school students. MangoHub helps teens discover part-time work opportunities near them. Jobs for 16 year olds and 17 year olds in particular">
-        <meta name="keywords" content="teen jobs, high school jobs, part-time jobs, local jobs, student employment">
-        <meta name="author" content="MangoHub">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta property="og:title" content="MangoHub - Jobs for High School Teens">
-        <meta property="og:description" content="Find local jobs for high school students. Jobs for 16 year olds and 17 year olds. Jobs for teens.">
-        <meta property="og:image" content="https://mangohub.app/mangohub.png">
-        <meta property="og:url" content="https://mangohub.app/">
-        <!-- Google tag (gtag.js) -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-725428PR4P"></script>
-        <script>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
+style = load_template("style.html")
+navigator = load_template("navigator.html")
 
-        gtag('config', 'G-725428PR4P');
-        </script>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-        <style>
-        table {
-        margin-top: 20px;
-        font-family: arial, sans-serif;
-        border-collapse: collapse;
-        width: 100%;
-        }
-
-        body{
-        font-family: arial, sans-serif;
-        }
-
-        select, input{
-        font-family: arial, sans-serif;
-        font-size: 110%;
-        }
-        td, th {
-          border: 1px solid #e0e0e0;
-          text-align: left;
-          padding: 12px 16px;
-          vertical-align: middle;
-        }
-
-        td:nth-child(2) {
-          max-width: 300px;
-          word-wrap: break-word;
-        }
-
-        tr:nth-child(even) {
-          background-color: #f9f9f9;
-        }
-
-        tr:hover {
-          background-color: #f0f4ff;
-          transition: background-color 0.2s ease-in-out;
-        }
-
-        th {
-          background-color: #f2f2f2;
-          font-weight: bold;
-          color: #333;
-        }
-
-        table {
-        border-collapse: separate;
-        border-spacing: 0;
-        border-radius: 8px;
-        overflow: hidden;
-        }
-
-        button i {
-        font-size: 20px;
-        }
-        button {
-        background: none;
-        border: none;
-        cursor: pointer;
-        }
-        .header-background {
-        background-image: url('https://mangohub.app/mangobackground.png');
-        background-size: auto;
-        background-repeat: repeat -x;
-        background-position: center -50px;
-        text-align: center;
-        padding: 60px 0;
-        color: black;
-        }
-        .header-background h1, .header-background p {
-        margin: 0;
-        padding: 0;
-        }       
-
-        @media only screen and (max-width: 1000px) {
-        /* Phone-specific styles here */
-        body {
-        font-size: 100%;
-        }
-        table {
-        font-size: 110%;
-        }
-
-        </style>
-        </head>
-        """
-
-navigator = """
-<hr>
-<style>
-  .nav-link {
-    text-decoration: none;
-    font-weight: normal;
-    color: black;
-  }
-
-  .nav-link:hover {
-    font-weight: bold;
-  }
-
-  .active {
-    font-weight: bold;
-    color: black;
-    text-decoration: none;
-  }
-
-  .nav-container {
-    text-align: center;
-  }
-</style>
-
-<div class="nav-container">
-  <p>
-    <a href="index.html" class="active">Home</a> |
-    <a href="about.html" class="nav-link">About</a> |
-    <a href="blog.html" class="nav-link">Blog</a>
-  </p>
-</div>
-<hr>
-"""
 print("Content-type:text/html")
 print(style)
 print("  <body>")
@@ -322,130 +201,16 @@ print('''
 </div>
 ''')
 
-# Replace the existing JavaScript section with this updated version:
-
-print('''
-<script>
-  // Dynamically injected valid city list from Python
-  const cityData = [
-''')
+print("<script>")
+print("const cityData = [")
 for city in cities:
     count = nJobsInCity[city]
-    print(f'    {{name: "{city}", display: "{city} ({count})"}},')
-print('''
-  ];
+    print(f'  {{name: "{city}", display: "{city} ({count})"}},')
+print("];")
+print("</script>")
+print('<script src="/script.js"></script>')
 
-  const params = new URLSearchParams(window.location.search);
-  let city = params.get("cityState");
-  const validCityNames = cityData.map(c => c.name);
 
-  // If cityState is invalid, clean the URL
-  if (city && !validCityNames.includes(city)) {
-    params.delete("cityState");
-    params.delete("lat");
-    params.delete("long");
-    const newUrl = window.location.pathname + (params.toString() ? "?" + params.toString() : "");
-    window.history.replaceState({}, "", newUrl);
-  }
-
-  function updateDropdown(inputValue) {
-    const datalist = document.getElementById("cities");
-    datalist.innerHTML = ""; // Clear existing options
-    
-    const searchTerm = inputValue.trim().toLowerCase();
-    
-    if (searchTerm === "") {
-      // If input is empty, show all cities
-      cityData.forEach(city => {
-        const option = document.createElement("option");
-        option.value = city.display;
-        datalist.appendChild(option);
-      });
-    } else {
-      // Filter cities that start with the input value (case insensitive)
-      const filtered = cityData.filter(city => 
-        city.name.toLowerCase().startsWith(searchTerm)
-      );
-      
-      filtered.forEach(city => {
-        const option = document.createElement("option");
-        option.value = city.display;
-        datalist.appendChild(option);
-      });
-      
-      // Debug: log if no results found
-      if (filtered.length === 0) {
-        console.log("No cities found starting with:", inputValue);
-        console.log("Available cities:", cityData.map(c => c.name));
-      }
-    }
-  }
-
-  function goToCity() {
-    let city = document.getElementById("citySearch").value.trim();
-    const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-
-    if (city === "") {
-      // If input is empty, go back to main page
-      window.location.href = "https://mangohub.app/";
-      return;
-    }
-
-    // Extract city name from "CityName (count)" format if present
-    const cityName = city.includes(" (") ? city.split(" (")[0].trim() : city;
-    
-    // Check if the city name is valid
-    if (validCityNames.includes(cityName)) {
-      window.location.href = "https://mangohub.app/?cityState=" + encodeURIComponent(cityName) + dbg;
-    } else {
-      alert("Please select a valid city from the list.");
-    }
-  }
-
-  function useCurrentLocation() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(position) {
-        const lat = position.coords.latitude;
-        const long = position.coords.longitude;
-        const dbg = window.location.href.includes("dbg=1") ? "&dbg=1" : "";
-        window.location.href = `https://mangohub.app/?cityState=current&lat=${lat}&long=${long}${dbg}`;
-      }, function(error) {
-        alert("Geolocation failed: " + error.message);
-      });
-    } else {
-      alert("Geolocation is not supported by this browser.");
-    }
-  }
-
-  function handleKey(event) {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      goToCity();
-    }
-  }
-
-  function handleInput() {
-    const inputValue = document.getElementById("citySearch").value;
-    
-    // Debug logging
-    console.log("Input value:", inputValue);
-    console.log("Searching for cities starting with:", inputValue.toLowerCase());
-    
-    updateDropdown(inputValue);
-    
-    // Auto-navigate if exact match is found
-    const exactMatch = cityData.find(city => city.display === inputValue);
-    if (exactMatch) {
-      goToCity();
-    }
-  }
-
-  // Initialize dropdown when page loads
-  document.addEventListener("DOMContentLoaded", function() {
-    updateDropdown("");
-  });
-</script>
-''')
 # PRINT TABLE
 # JOBS TABLE
 if not jobs and not dbg:
@@ -485,21 +250,22 @@ if jobs or dbg:
             for idx, x in enumerate(i):
                 if idx == 0:
                     print("<td style='text-align: center;'>" + str(x) + " mi </td>")
-                elif idx == 5 and x == 0.0:
-                    print("<td style='text-align: center;'> - </td>")
-                elif idx == 5 and x != 0.0:
-                    print("<td style='text-align: center;'>$" + str(x) + "</td>")
+                elif idx == 5:
+                    pay = format_pay(x)
+                    print("<td style='text-align: center;'> - </td>" if pay is None else f"<td style='text-align: center;'>${pay}</td>")
                 else:
                     print("<td>" + str(x) + "</td>")
             print("      </tr>")
     else:
         if phone:
             for job in jobs:
+                pay = format_pay(job[5])
+                pay_display = "-" if pay is None else f"${pay}"
                 print("<tr>")
                 print("<td>")
                 print(job[1] + ", " +  str(job[2]) + "<br> ")
                 print(job[6] + ", " + str(job[7]) + "<br>")
-                print(job[0] + " mi, "  + str(job[4]) + "yo, $" + str(job[5])  +  " " + job[10])
+                print(job[0] + " mi, "  + str(job[4]) + "yo, " + pay_display + " " + job[10])
                 print("</td>")
                 print("</tr>")
         else:
@@ -509,11 +275,9 @@ if jobs or dbg:
                     if columns[idx] not in exclude:
                         if value == i[0]:
                             print("<td style='text-align: center;'>" + str(value) + " mi</td>")
-                        elif idx == 5 and value == 0.0:
-                            print("<td style='text-align: center;'> - </td>")
-                        elif idx == 5 and not value == 0.0:
-                            formatted = f"{value:.2f}"
-                            print("<td style='text-align: center;'>$" + str(formatted) + " </td>")
+                        elif idx == 5:
+                            pay = format_pay(value)
+                            print("<td style='text-align: center;'> - </td>" if pay is None else f"<td style='text-align: center;'>${pay} </td>")
                         else:
                             print("<td>" + str(value) + "</td>")
                 print("      </tr>")

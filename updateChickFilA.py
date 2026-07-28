@@ -16,7 +16,7 @@ def parseList(URL):
     
     joblist = json.loads(r.text)
     resultList = [] 
-         
+        
     for i in joblist['response']['results']:
         time.sleep(1)
         id = i['data']['id']
@@ -47,12 +47,9 @@ def parseList(URL):
             results.update({"url": applyurl})
             results.update({"postdate": datetime.today().strftime("%Y-%m-%d")})
             resultList.append(results)
-            print("results: ",  results)
-            print()
             updateSQL(results, cursor, 'Chick-Fil-A')
         else:
             print("Job ", id, " already exists")
-            break
     return resultList
 
 

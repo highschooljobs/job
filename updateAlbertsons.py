@@ -85,25 +85,23 @@ def parseList(URL):
 
 
 
-if len(sys.argv) < 3 or len(sys.argv) > 3:
-    print("Usage: %s <start> <num-pages>" % (sys.argv[0]))
+if len(sys.argv) < 2 or len(sys.argv) > 2:
+    print("Usage: %s <num-jobs>" % (sys.argv[0]))
     exit(1)
 
 print(80 * "-")
 print("Running at: ", datetime.now())
-print("command: ", sys.argv[0], sys.argv[1], sys.argv[2])
+print("command: ", sys.argv[0], sys.argv[1])
 
 connection = openInitDb()
 cursor = connection.cursor()
 
 master = []
-
 y = int(sys.argv[1])
-for x in range(int(sys.argv[2])): 
-    link = 'https://eofd.fa.us6.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.workLocation,requisitionList.otherWorkLocations,requisitionList.secondaryLocations,flexFieldsFacet.values,requisitionList.requisitionFlexFields&finder=findReqs;siteNumber=CX_1001,facetsList=LOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS,limit=25,lastSelectedFacet=LOCATIONS,selectedCategoriesFacet=300000034963805,selectedLocationsFacet=300000002736067,sortBy=POSTING_DATES_DESC,offset=' + str(int(y)*25)
+for i in range(int(y/2)):
+    link = "https://eofd.fa.us6.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions?onlyData=true&expand=requisitionList.workLocation,requisitionList.otherWorkLocations,requisitionList.secondaryLocations,flexFieldsFacet.values,requisitionList.requisitionFlexFields&finder=findReqs;siteNumber=CX_1001,facetsList=LOCATIONS%3BWORK_LOCATIONS%3BWORKPLACE_TYPES%3BTITLES%3BCATEGORIES%3BORGANIZATIONS%3BPOSTING_DATES%3BFLEX_FIELDS,limit=25,lastSelectedFacet=TITLES,selectedCategoriesFacet=300000034963805,selectedTitlesFacet=FRONT_END,sortBy=POSTING_DATES_DESC,offset=" + str(i*25*2)
     results = parseList(link)
     master += results
-    y += 1
 
 jobs = 0
 count16 = 0

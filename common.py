@@ -1,6 +1,9 @@
 from geopy.geocoders import GoogleV3
 import geopy.distance
 import sqlite3
+import requests
+import json
+import html
 from datetime import datetime
 GM_API_KEY = 'AIzaSyBejZVTH21hRQdHODK8PkcQ6jng5SlWpxs'
 geolocator = GoogleV3(api_key=GM_API_KEY)
@@ -9,6 +12,7 @@ geolocator = GoogleV3(api_key=GM_API_KEY)
 dbpath = "/var/lib/db/jobs.db"
 cityTable = "cityStates"
 jobTable = "jobs"
+tokenTable = "tokenCount"
 def get_state_abbreviation(state_name):
     states = {
         "alabama": "AL",
@@ -121,10 +125,12 @@ def updateSQL(dictionary, cursor, company):
             print("saved a token")
         elif age > 0 and age < 18:
             latitude, longitude = getLatLong(address + cityState)
+            increaseToken(cursor)
             print("using a token")
         else:
             latitude = 0
             longitude = 0
+            print("too old for token")
     else:
         latitude = dictionary.get("latitude")
         longitude = dictionary.get("longitude")
@@ -156,6 +162,7 @@ def updateSQL(dictionary, cursor, company):
                 return
             try:
                 citylat, citylong = getLatLong(cityState)
+                increaseToken(cursor)
             except:
                 return
             command1 = f"INSERT INTO {cityTable} (cityState, latitude, longitude) VALUES (?, ?, ?)"
@@ -182,10 +189,51 @@ def openInitDb():
 
     command2 = "CREATE TABLE IF NOT EXISTS %s (cityState TEXT, latitude FLOAT, longitude FLOAT)" % (cityTable)
     cursor.execute(command2)
+
+    command3 = "CREATE TABLE IF NOT EXISTS %s (count INTEGER)" % (tokenTable)
+    cursor.execute(command3)
     return connection
 def isTooSenior(title):
-    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat', 'Deli', 'Kitchen Team Member', 'Visual Merchandiser']
+    seniors = ['Director', 'Manager', 'in Charge', 'Specialty', 'Meat', 'Deli', 'Kitchen Team Member', 'Visual Merchandiser', 'Leader']
     for i in seniors:
         if i in title:
             return True
     return False
+def increaseToken(cursor):
+    command1 = "UPDATE tokenCount SET count = count + 1;"
+    cursor.execute(command1)
+
+
+
+def existsJob(job):
+    albertcompany = ['Albertsons', "Safeway", "Vons", "Andronico's", "Albertsons Companies", "Pavilions", "Jewel Osco", "Randalls"]
+    url = job[9][9:-28]
+    print("Checking job: ", job[2], url, flush=True)
+
+    #ONLY FOR ALBERTSONS
+    if job[0] in albertcompany:
+        id = job[2].split(":")[1]
+        r = requests.get(url="https://eofd.fa.us6.oraclecloud.com/hcmRestApi/resources/latest/recruitingCEJobRequisitionDetails?expand=all&onlyData=true&finder=ById;Id=%22" + id + "%22,siteNumber=CX_1001")
+        jobdata = json.loads(r.text)
+        items = jobdata.get("items")
+        if not items:
+            return False
+        return True
+    else:
+        r = requests.get(url=url)
+
+        if r.status_code == 404:
+            print("404 ERROR: ")
+            return False
+
+        # Unescape and check page content
+        s = html.unescape(r.text)
+        lowered = s.lower()
+
+        if ("job no longer available" in lowered
+            or "position has been filled" in lowered
+            or "expired" in lowered):
+            print(f"Job closed:")
+            return False
+
+        return True

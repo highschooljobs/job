@@ -3,130 +3,84 @@ import json
 import requests
 import sqlite3
 import time, datetime
+from datetime import datetime
 import sys
 from common import *
 
-
-
-def updateSQL(dictionary, cursor):
-    command1 = """
-    INSERT INTO jobs 
-    (company, title, id, age, pay, address, cityState, longitude, latitude, url) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """
-    values = (
-        dictionary["company"],
-        dictionary["title"],
-        dictionary["id"],
-        dictionary["age"],
-        dictionary["pay"],
-        dictionary["address"],
-        dictionary["cityState"],
-        dictionary["longitude"],
-        dictionary["latitude"],
-        f'<a href="{dictionary["url"]}" target="_blank"> Apply</a>'
-    )
-
-    cursor.execute(command1, values)
-
-
 def parseList(URL):
-    print(URL)
+    print("parseList: ", URL)
     r = requests.get(url=URL)
     if r.status_code != 200:
         print(f"ERROR: HTTP Response code {r.status_code}")
+    time.sleep(1)
     
     joblist = json.loads(r.text)
     resultList = [] 
          
     for i in joblist['response']['results']:
-        time.sleep(1)
         id = i['data']['id']
-        if not existsId("ChickFilA:" + id, cursor):
-            try:
-                title = i['data']['name'] 
-                if title == "Front of House Team Member":
+        try:
+            if not existsId("ChickFilA:" + id, cursor):
+                title = i['data']['name']
+                if "Front of House Team Member" in title:
                     age = 16
                 else:
-                    continue
+                    age = 0
+
                 applyurl = i['data']['applicationUrl']
                 cityState = i["data"]["c_jobCity"] + ", " + i['data']["c_jobState"]
+
                 try:
                     pay = i['data']['c_payRange']
+                    pay = pay.replace('$', '')
                 except KeyError:
                     pay = "Competitive"
+
                 address = i['data']['c_jobAddressLine1']
-                latitude, longitude = getLatLong(address + ", " + cityState)
-            except:
-                continue
-            results = {}
 
+                results = {}
+                results.update({"company": "Chick-Fil-A"})
+                results.update({"title": title})
+                results.update({"age": age})
+                results.update({"pay": pay})
+                results.update({"id": "ChickFilA:" + id})
+                results.update({"address": address})
+                results.update({"cityState": cityState})
+                results.update({"url": applyurl})
+                results.update({"postdate": datetime.today().strftime("%Y-%m-%d")})
 
-            results.update({"company": "Chick-Fil-A"})
-            results.update({"title": title})
-            results.update({"age": age})
-            results.update({"pay": pay})
-            results.update({"id": "ChickFilA:" + id})
-            results.update({"address": address})
-            results.update({"cityState": cityState})
-            results.update({"latitude": latitude})
-            results.update({"longitude": longitude})
-            results.update({"url": applyurl})
-            resultList.append(results)
-            print("results: ",  results)
-            print()
-            updateSQL(results, cursor)
-            print( "Job ", id, " added", applyurl)
+                resultList.append(results)
+                updateSQL(results, cursor, 'Chick-Fil-A')
 
-            if isValidAge(age):
-                if not existsCityState(cityState, cursor):
-                    latitude, longitude = getLatLong(cityState)
-                    command1 = "INSERT INTO %s (cityState, latitude, longitude) VALUES (?, ?, ?)" % (cityTable)
-                    cursor.execute(command1)
-                else:
-                    command2 = """
-                    UPDATE %s
-                    SET job_count = job_count + 1
-                    WHERE cityState = ?
-                    """ % cityTable
-                    cursor.execute(command2, (cityState,))
+            else:
+                print("Job", id, "already exists")
 
-        else:
-            print("Job already added")
+        except Exception as e:
+            print("Skipping due to error:", e)
+            continue
+
     return resultList
 
 
-
-if len(sys.argv) < 3 or len(sys.argv) > 3:
-    print("Usage: %s <start-index-citystates> <num-citystates>" % (sys.argv[0]))
+if len(sys.argv) < 1 or len(sys.argv) > 1:
+    print("Usage: %s just let it run" % (sys.argv[0]))
     exit(1)
 
 print(80 * "-")
-print("Running at: ", datetime.datetime.now())
-print("command: ", sys.argv[0], sys.argv[1])
+print("Running at: ", datetime.now())
+print("command: ", sys.argv[0])
 
-connection = sqlite3.connect("/var/lib/db/jobs.db")
+connection = openInitDb()
 cursor = connection.cursor()
 
-command1 = "CREATE TABLE IF NOT EXISTS jobs (company TEXT, title TEXT, id TEXT, age TEXT, pay TEXT, address TEXT, cityState TEXT, longitude FLOAT, latitude FLOAT, url TEXT)"
-cursor.execute(command1)
-
-command2 = "CREATE TABLE IF NOT EXISTS cityState (cityState TEXT, latitude FLOAT, longitude FLOAT)"
-cursor.execute(command2)
 
 
-
-
-start_index = int(sys.argv[1])  # e.g., 5
-count = int(sys.argv[2])        # e.g., 10
-
-command3 = "SELECT * FROM cityState"
+command3 = "SELECT * FROM cityStates"
 cursor.execute(command3)
 rows = cursor.fetchall()
-
-selected_rows = rows[start_index:start_index + count]
 master = []
-for row in selected_rows:
+
+for row in rows:
     time.sleep(1)
     raw = row[0]
     cityStateEncoded = raw.replace(" ", "+").replace(",", "%2C")
@@ -148,8 +102,11 @@ for row in selected_rows:
     print("Jobs for 16 yr olds: ", count16)
 
     print("ID    Title    City    State     Age    Pay    URL")
-    for item in master:
+    for item in results:
         print("%s %-20s %-15s %d %-13s %s" % (item["id"], item["title"], item["cityState"], item["age"], item["pay"], item["url"]))
+    connection.commit()
+    print("committing...")
+
 
 for item in master:
     if item["age"]==16:

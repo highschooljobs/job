@@ -31,6 +31,7 @@ for cityState in city_states:
     cityState = cityState.strip()
     try:
         latitude, longitude = getLatLong(cityState)
+        increaseToken(cursor)
         cursor.execute(
             "INSERT INTO cityStates (cityState, latitude, longitude) VALUES (?, ?, ?)",
             (cityState, latitude, longitude)
